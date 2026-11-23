@@ -244,6 +244,45 @@ class RankingConfig(FrozenModel):
     """A remembered favorite matches a stall whose centre is this close (m)."""
 
 
+class PlannerConfig(FrozenModel):
+    """Hybrid A* with Reeds-Shepp analytic expansion (C1, C9, C10)."""
+
+    xy_resolution: float = 0.5
+    """Cell size of the closed set (m)."""
+    yaw_bins: int = 48
+    """Heading discretisation of the closed set (7.5 deg)."""
+    step: float = 1.0
+    """Arc length of one motion primitive (m)."""
+    steer_samples: int = 5
+    """Steering angles per direction, spread over [-max_steer, max_steer]."""
+    collision_step: float = 0.2
+    """Spacing of collision-checked poses along primitives and analytic paths (m)."""
+    reverse_multiplier: float = 1.4
+    """Cost multiplier for reverse distance."""
+    gear_change_cost: float = 9.0
+    """Cost of each forward/reverse switch, in metre-equivalents (the C1 knob)."""
+    steer_cost: float = 0.3
+    """Cost per metre at full steering lock."""
+    steer_change_cost: float = 0.4
+    """Cost per change of steering between consecutive primitives (full lock to lock = 2x)."""
+    clearance_cost: float = 2.0
+    """Cost per metre driven per metre of clearance below ``preferred_clearance``."""
+    preferred_clearance: float = 0.9
+    """Clearance (body disk to obstacle) below which the clearance cost applies (m)."""
+    heuristic_weight: float = 2.0
+    """Weighted A* inflation (>1 trades optimality for speed)."""
+    analytic_every: int = 4
+    """Attempt a Reeds-Shepp shot to the goal every N expansions."""
+    analytic_range: float = 18.0
+    """Only attempt analytic shots within this distance of the goal (m)."""
+    analytic_candidates: int = 12
+    """Number of Reeds-Shepp paths (cheapest first) tried per analytic shot."""
+    max_expansions: int = 6000
+    """Search budget; deterministic (no wall-clock limits)."""
+    safety_margin: float = 0.15
+    """Base clearance added around the footprint (incl. mirrors) for collision checks (m)."""
+
+
 class DirectionPreference(StrEnum):
     """How the user likes to end up in a perpendicular stall (C15)."""
 
@@ -303,3 +342,4 @@ class ParkPilotConfig(FrozenModel):
     tracker: TrackerConfig = TrackerConfig()
     spots: SpotDetectionConfig = SpotDetectionConfig()
     ranking: RankingConfig = RankingConfig()
+    planner: PlannerConfig = PlannerConfig()
