@@ -183,7 +183,15 @@ class SpotDetector:
             gaps = self._gaps(perc)
             # Painted stalls take precedence where both detectors fire; a line-less guess is
             # forgotten once painted lines explain the same place.
+            mids = [ln.mid for ln in perc.semantic.lines.values()]
             for g in gaps:
+                # In a painted area, only painted stalls count: a gap with stall lines
+                # nearby (a row end, a hatched area, a driveway) is not a parking spot.
+                if any(
+                    float(np.hypot(*(m - g.pose.xy))) < self.cfg.painted_area_radius for m in mids
+                ):
+                    self._gap_registry.pop(g.id, None)
+                    continue
                 if all(g.pose.distance_to(c.pose) > 1.5 for c in cands):
                     cands.append(g)
                 else:
@@ -466,7 +474,7 @@ def _coverage(grid: OccupancyGrid, poly: FloatArray) -> tuple[float, float]:
 
 def _far_end_open(grid: OccupancyGrid, c: SpotCandidate) -> bool:
     """True if the far end of a perpendicular stall is observed, free drivable space."""
-    beyond = c.pose.compose(Pose(c.length / 2 + 2.0, 0.0, 0.0))
+    beyond = c.pose.compose(Pose(c.length / 2 + 1.5, 0.0, 0.0))
     strip = rect_polygon(beyond, 3.0, max(0.5, c.width - 0.6))
     occ, obs = _coverage(grid, strip)
     return occ == 0.0 and obs > 0.6

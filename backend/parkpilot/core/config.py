@@ -231,6 +231,8 @@ class SpotDetectionConfig(FrozenModel):
     """Features within this distance of a stall polygon are attributed to it (m)."""
     zone_radius: float = 1.8
     """No-parking surface cues within this distance make a stall candidate illegal (m)."""
+    painted_area_radius: float = 8.0
+    """Line-less candidates within this distance of a painted line are discarded (m)."""
     track_merge_distance: float = 1.2
     """Line-less candidates closer than this are the same spot across frames (m)."""
 
