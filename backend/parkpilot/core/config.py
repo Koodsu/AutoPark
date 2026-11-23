@@ -69,6 +69,63 @@ class AgentConfig(FrozenModel):
     """Distance at which a waypoint counts as reached (m)."""
 
 
+class CameraConfig(FrozenModel):
+    """One camera rigidly mounted on the ego (vehicle frame, rear-axle origin)."""
+
+    name: str
+    x: float
+    y: float
+    yaw: float
+    """Optical axis direction relative to the vehicle heading (rad)."""
+    fov: float
+    """Horizontal field of view (rad)."""
+    max_range: float
+    """Daylight detection range (m)."""
+
+
+def _default_cameras() -> tuple[CameraConfig, ...]:
+    return (
+        CameraConfig(name="front", x=2.6, y=0.0, yaw=0.0, fov=2.1, max_range=32.0),
+        CameraConfig(name="rear", x=-0.9, y=0.0, yaw=3.14159, fov=2.1, max_range=20.0),
+        CameraConfig(name="left", x=1.2, y=0.95, yaw=1.5708, fov=1.9, max_range=16.0),
+        CameraConfig(name="right", x=1.2, y=-0.95, yaw=-1.5708, fov=1.9, max_range=16.0),
+    )
+
+
+class SensorConfig(FrozenModel):
+    """Camera-only perception model (C7, C8). No ultrasonics, no lidar."""
+
+    cameras: tuple[CameraConfig, ...] = Field(default_factory=_default_cameras)
+    ray_resolution: float = 0.025
+    """Angular spacing of depth rays (rad, ~1.4 deg)."""
+    near_blind_range: float = 0.25
+    """Nothing is seen closer than this to the body: below the cameras' view (m)."""
+    low_blind_range: float = 1.4
+    """Low objects (curbs, bollards, snow piles) vanish inside this distance of the body (m)."""
+    range_noise_base: float = 0.02
+    """Depth noise standard deviation at zero range in daylight (m)."""
+    range_noise_per_m: float = 0.006
+    """Additional depth noise per metre of range (stereo-like growth)."""
+    night_noise_gain: float = 2.5
+    """Noise multiplier added at lighting 0 (1 + gain * (1 - lighting))."""
+    night_range_factor: float = 0.55
+    """Fraction of daylight range available at lighting 0."""
+    dropout: float = 0.03
+    """Probability that a ray returns nothing in daylight."""
+    night_dropout: float = 0.12
+    """Additional dropout probability at lighting 0."""
+    clutter_rate: float = 0.04
+    """Per-frame probability of one random clutter detection (noise, glare)."""
+    feature_read_prob: float = 0.85
+    """Probability of reading a visible sign or paint symbol in daylight at close range."""
+    feature_range: float = 14.0
+    """Range beyond which signs and paint cannot be read (m)."""
+    line_noise: float = 0.05
+    """Painted-line endpoint noise (m)."""
+    paint_night_penalty: float = 0.35
+    """Read-probability reduction for paint (not signs) at lighting 0."""
+
+
 class DirectionPreference(StrEnum):
     """How the user likes to end up in a perpendicular stall (C15)."""
 
@@ -121,3 +178,4 @@ class ParkPilotConfig(FrozenModel):
 
     vehicle: VehicleConfig = VehicleConfig()
     agents: AgentConfig = AgentConfig()
+    sensor: SensorConfig = SensorConfig()
