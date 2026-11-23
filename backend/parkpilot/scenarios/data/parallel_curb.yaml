@@ -1,0 +1,23 @@
+id: parallel_curb
+title: Parallel parking between two cars at a curb
+complaints: [C9]
+description: >
+  A street with parallel stalls along the right curb. One 7 m stall is free between two
+  parked cars. ParkPilot plans a multi-segment Reeds-Shepp maneuver and targets a 0.3 m curb
+  gap measured from the perceived curb.
+location_id: main_street
+bounds: [0, 0, 70, 16]
+entrance: [40, 2.5]
+ego_start: [3, 9.6, 0]
+search_route: [[4, 9.6], [66, 9.6]]
+rows:
+  - prefix: P
+    first_center: [8, 4.85, 0]
+    count: 8
+    stall_width: 2.5
+    stall_length: 7.0
+    layout: parallel
+    occupied: [0, 1, 2, 3, 5, 6, 7]
+obstacles:
+  - {kind: curb, center: [35, 3.45], size: [70, 0.3], height: 0.15}
+  - {kind: wall, center: [35, 1.6], size: [70, 0.4], height: 1.0}

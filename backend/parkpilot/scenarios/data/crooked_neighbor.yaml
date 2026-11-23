@@ -1,0 +1,25 @@
+id: crooked_neighbor
+title: Neighbor parked over the line
+complaints: [C3]
+description: >
+  The best free stall has a neighbor parked 0.5 m over the shared line and slightly crooked.
+  Centering on the painted lines leaves too little room to open the door on that side;
+  ParkPilot centers between the actual neighbors (staying within the lines) instead.
+location_id: office_south
+bounds: [0, 0, 50, 34]
+entrance: [26, 33]
+ego_start: [3, 17, 0]
+search_route: [[4, 17], [46, 17]]
+rows:
+  - prefix: A
+    first_center: [8, 23.4, 90]
+    count: 13
+    occupied: [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12]
+    offsets: {6: [0.5, 3]}
+  - prefix: B
+    first_center: [41.6, 10.6, -90]
+    count: 13
+    occupied: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+obstacles:
+  - {kind: curb, center: [24.8, 26.3], size: [37.2, 0.2], height: 0.15}
+  - {kind: curb, center: [24.8, 7.7], size: [37.2, 0.2], height: 0.15}

@@ -1,0 +1,26 @@
+id: destination_entrance
+title: Pick the spot near the entrance, not the first one or one between trucks
+complaints: [C4]
+description: >
+  Free stalls exist near the lot entry (far from the door), between two large trucks close
+  to the door, and a roomy stall one space farther along. The drop-off pin is the store
+  entrance. A first-available system takes the first stall; ParkPilot weighs walking
+  distance, neighbor clearance and maneuver difficulty.
+location_id: grocery_north
+bounds: [0, 0, 62, 34]
+entrance: [44, 33]
+ego_start: [3, 17, 0]
+search_route: [[4, 17], [58, 17]]
+rows:
+  - prefix: A
+    first_center: [8, 23.4, 90]
+    count: 17
+    occupied: [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 14, 16]
+    trucks: [11, 13]
+  - prefix: B
+    first_center: [52.8, 10.6, -90]
+    count: 17
+    occupied: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+obstacles:
+  - {kind: curb, center: [30.4, 26.3], size: [48.4, 0.2], height: 0.15}
+  - {kind: curb, center: [30.4, 7.7], size: [48.4, 0.2], height: 0.15}

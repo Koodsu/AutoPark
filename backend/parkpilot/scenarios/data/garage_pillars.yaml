@@ -1,0 +1,36 @@
+id: garage_pillars
+title: Parking garage with pillars and a narrow aisle
+complaints: [C10, C7]
+description: >
+  A concrete garage level with structural pillars between every third stall and a 6.4 m
+  aisle (narrower than the 7.4 m surface-lot aisles). Mirrors are part of the collision
+  footprint. The free stall sits beside a pillar.
+location_id: garage_downtown
+bounds: [0, 0, 50, 30]
+entrance: [46, 29]
+lighting: 0.6
+surface: concrete
+ego_start: [3, 15, 0]
+search_route: [[4, 15], [46, 15]]
+rows:
+  - prefix: G
+    first_center: [8, 20.9, 90]
+    count: 13
+    occupied: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12]
+  - prefix: H
+    first_center: [41.6, 9.1, -90]
+    count: 13
+    occupied: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+obstacles:
+  # Pillars sit on the stall lines every third stall, 1 m in from the aisle end, and
+  # intrude 0.25 m into the neighbouring stalls.
+  - {kind: pillar, center: [9.4, 19.2], size: [0.5, 0.5], height: 3.0}
+  - {kind: pillar, center: [17.8, 19.2], size: [0.5, 0.5], height: 3.0}
+  - {kind: pillar, center: [26.2, 19.2], size: [0.5, 0.5], height: 3.0}
+  - {kind: pillar, center: [34.6, 19.2], size: [0.5, 0.5], height: 3.0}
+  - {kind: pillar, center: [9.4, 10.8], size: [0.5, 0.5], height: 3.0}
+  - {kind: pillar, center: [17.8, 10.8], size: [0.5, 0.5], height: 3.0}
+  - {kind: pillar, center: [26.2, 10.8], size: [0.5, 0.5], height: 3.0}
+  - {kind: pillar, center: [34.6, 10.8], size: [0.5, 0.5], height: 3.0}
+  - {kind: wall, center: [24.8, 24.0], size: [37.2, 0.3], height: 3.0}
+  - {kind: wall, center: [24.8, 6.0], size: [37.2, 0.3], height: 3.0}
