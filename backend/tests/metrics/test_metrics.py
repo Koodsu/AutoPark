@@ -97,3 +97,8 @@ def test_emergency_braking_is_rate_limited_and_yields_are_smooth() -> None:
     assert m.collisions == 0 and m.missed_hazards == 0
     assert m.peak_jerk <= 41.0
     assert m.peak_jerk_comfort <= 5.0
+
+
+def test_garage_seed_that_used_to_hand_back_now_parks() -> None:
+    m = run_one("garage_pillars", "parkpilot", 1)
+    assert m.parked and m.collisions == 0 and not m.handback

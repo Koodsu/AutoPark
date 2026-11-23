@@ -42,7 +42,7 @@ from parkpilot.core.units import angle_diff
 from parkpilot.perception.pipeline import PerceptionOutput
 from parkpilot.planning.collision import CollisionChecker
 from parkpilot.planning.goal import GoalResult, compute_goal
-from parkpilot.planning.hybrid_astar import HybridAStar, Path
+from parkpilot.planning.hybrid_astar import HybridAStar, Path, PlanResult
 from parkpilot.safety.supervisor import SafetyDecision, SafetySupervisor
 from parkpilot.spots.classify import classify
 from parkpilot.spots.detect import SpotCandidate, SpotDetector
@@ -104,6 +104,17 @@ class ParkPilotAutonomy:
         self.remembered = list(remembered or [])
         self.detector = SpotDetector(config.spots, route, bounds)
         self.planner = HybridAStar(config.planner, self.vehicle)
+        # Tight spaces: a second attempt with a larger budget and a finer steering set.
+        self.wide_planner = HybridAStar(
+            config.planner.model_copy(
+                update={
+                    "max_expansions": config.planner.max_expansions
+                    * config.planner.retry_budget_factor,
+                    "steer_samples": config.planner.retry_steer_samples,
+                }
+            ),
+            self.vehicle,
+        )
         self.supervisor = SafetySupervisor(config.safety, config.tracker, self.vehicle)
         self.driver = Driver(config.control, config.speed, self.vehicle)
         self.telemetry = Telemetry()
@@ -509,6 +520,16 @@ class ParkPilotAutonomy:
                 )
         return None
 
+    def _plan_with_retry(
+        self, start: Pose, goal: Pose, checker: CollisionChecker, straight: float, direction: int
+    ) -> PlanResult:
+        res = self.planner.plan(start, goal, checker, straight, direction)
+        self.telemetry.plans += 1
+        if not res.success and res.reason == "search budget exhausted":
+            res = self.wide_planner.plan(start, goal, checker, straight, direction)
+            self.telemetry.plans += 1
+        return res
+
     def _straight_len(self, cand: SpotCandidate) -> float:
         """Length of the straight segment that ends the maneuver into ``cand``.
 
@@ -597,8 +618,7 @@ class ParkPilotAutonomy:
         if not goal.ok:
             return None, None, "no collision-free final pose"
         straight = self._straight_len(cand)
-        res = self.planner.plan(start, goal.pose, checker, straight, -1 if reverse else 1)
-        self.telemetry.plans += 1
+        res = self._plan_with_retry(start, goal.pose, checker, straight, -1 if reverse else 1)
         if not res.success or res.path is None:
             if reverse and cand.charger is None:
                 # Preference is soft: try the other entry direction before giving up.

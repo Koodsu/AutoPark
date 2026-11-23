@@ -86,3 +86,20 @@ def test_no_perception_means_hold() -> None:
     ctrl = a.step(0.0, 0.05, VehicleState(Pose(4, 17, 0), speed=1.0), None)
     assert ctrl.accel < 0
     assert not a.done and a.state is DriveState.SEARCH
+
+
+def test_planner_retries_with_a_larger_budget() -> None:
+    from parkpilot.core.config import PlannerConfig
+
+    cfg = ParkPilotConfig(planner=PlannerConfig(max_expansions=5, retry_budget_factor=400))
+    sc, world, out, _, _ = survey("destination_entrance")
+    a = ParkPilotAutonomy(cfg, route=list(sc.search_route), entrance=sc.entrance, settings=sc.user)
+    a._perc = out
+    spot = world.spot("A15")
+    goal = a.vehicle.rear_axle_from_center(
+        Pose(spot.pose.x, spot.pose.y, spot.pose.theta + math.pi)
+    )
+    tiny = a.planner.plan(Pose(40, 17, 0), goal, a._checker())
+    assert not tiny.success and tiny.reason == "search budget exhausted"
+    res = a._plan_with_retry(Pose(40, 17, 0), goal, a._checker(), 1.2, -1)
+    assert res.success
