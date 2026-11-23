@@ -87,3 +87,13 @@ def test_crooked_stop_is_straightened_at_night() -> None:
     m = run_one("night_bollards", "parkpilot", 2)
     assert m.parked and m.collisions == 0
     assert m.final_heading_error_deg is not None and m.final_heading_error_deg <= 1.5
+
+
+def test_emergency_braking_is_rate_limited_and_yields_are_smooth() -> None:
+    # Regression: raw peak jerk was ~125 m/s^3 from instant 6 m/s^2 brake steps and
+    # instant releases. Emergency stops now ramp at the actuator limit; everything else
+    # stays at the comfort limit.
+    m = run_one("dynamic_agents", "parkpilot", 0)
+    assert m.collisions == 0 and m.missed_hazards == 0
+    assert m.peak_jerk <= 41.0
+    assert m.peak_jerk_comfort <= 5.0

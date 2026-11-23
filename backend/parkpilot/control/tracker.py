@@ -152,9 +152,10 @@ class PathFollower:
         v = self.vehicle.config
         lo = -v.emergency_decel if emergency else -v.max_decel
         a_mag = min(max(a_mag, lo), v.max_accel)
-        if not emergency:
-            jmax = cfg.jerk * dt
-            a_mag = min(max(a_mag, self._last_accel - jmax), self._last_accel + jmax)
+        # Brake actuators build pressure over ~0.15 s: even an emergency stop is
+        # jerk-limited, just with a much higher limit than comfort driving.
+        jmax = (cfg.emergency_jerk if emergency else cfg.jerk) * dt
+        a_mag = min(max(a_mag, self._last_accel - jmax), self._last_accel + jmax)
         self._last_accel = a_mag
         return a_mag
 

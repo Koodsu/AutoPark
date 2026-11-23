@@ -43,6 +43,8 @@ class TickRecord:
     accel: float
     steer: float
     state: DriveState
+    emergency: bool = False
+    """The safety supervisor commanded an emergency stop on this tick."""
 
 
 @dataclass(slots=True)
@@ -168,6 +170,7 @@ class Simulation:
                 self.state.accel,
                 self.state.steer,
                 self.autonomy.telemetry.state,
+                bool(self.autonomy.telemetry.safety and self.autonomy.telemetry.safety.emergency),
             )
         )
 

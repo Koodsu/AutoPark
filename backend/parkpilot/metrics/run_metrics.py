@@ -9,6 +9,7 @@ from __future__ import annotations
 import math
 
 import numpy as np
+from numpy.typing import NDArray
 from pydantic import BaseModel
 
 from parkpilot.behavior.types import DriveState
@@ -49,6 +50,8 @@ class RunMetrics(BaseModel):
     spot_switches: int
     mean_speed: float
     peak_jerk: float
+    peak_jerk_comfort: float = 0.0
+    """Peak jerk excluding confirmed emergency stops (and 0.5 s around them)."""
     final_lateral_error: float | None
     final_heading_error_deg: float | None
     min_side_clearance: float | None
@@ -82,10 +85,14 @@ def gear_changes(speeds: FloatArray, threshold: float = 0.05) -> int:
     return changes
 
 
-def _peak_jerk(speeds: FloatArray, accels: FloatArray) -> float:
+def _peak_jerk(
+    speeds: FloatArray, accels: FloatArray, exclude: NDArray[np.bool_] | None = None
+) -> float:
     if len(accels) < 2:
         return 0.0
     moving = (np.abs(speeds[1:]) > 0.1) & (np.abs(speeds[:-1]) > 0.1)
+    if exclude is not None:
+        moving &= ~exclude[1:]
     jerk = np.abs(np.diff(accels)) / DT
     return float(jerk[moving].max()) if moving.any() else 0.0
 
@@ -175,6 +182,7 @@ def compute_metrics(
     ticks = log.ticks
     speeds = np.array([r.speed for r in ticks]) if ticks else np.zeros(0)
     accels = np.array([r.accel for r in ticks]) if ticks else np.zeros(0)
+    emergency = _dilate(np.array([r.emergency for r in ticks], dtype=bool), round(0.5 / DT))
     parked = tel.state is DriveState.PARKED and tel.parked_pose is not None
     t_park = next((r.t for r in ticks if r.state is DriveState.PARKED), None) if parked else None
     end_idx = (
@@ -237,6 +245,7 @@ def compute_metrics(
         spot_switches=tel.spot_switches,
         mean_speed=dist / duration if duration > 0 else 0.0,
         peak_jerk=_peak_jerk(speeds[:end_idx], accels[:end_idx]),
+        peak_jerk_comfort=_peak_jerk(speeds[:end_idx], accels[:end_idx], emergency[:end_idx]),
         final_lateral_error=final["lateral"],
         final_heading_error_deg=final["heading"],
         min_side_clearance=final["side"],
@@ -255,6 +264,14 @@ def compute_metrics(
         preference_honored=honored,
         parked_spot=spot_obj.id if isinstance(spot_obj, Spot) else None,
     )
+
+
+def _dilate(mask: NDArray[np.bool_], n: int) -> NDArray[np.bool_]:
+    out = mask.copy()
+    for k in range(1, n + 1):
+        out[k:] |= mask[:-k]
+        out[:-k] |= mask[k:]
+    return out
 
 
 def _episodes(flags: list[bool]) -> int:

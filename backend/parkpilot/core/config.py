@@ -351,6 +351,8 @@ class SpeedConfig(FrozenModel):
     """Planned deceleration toward cusps and the goal (m/s^2)."""
     jerk: float = 2.0
     """Jerk limit applied by the longitudinal controller (m/s^3)."""
+    emergency_jerk: float = 40.0
+    """Brake build-up rate for emergency stops (m/s^3, ~0.15 s to full braking)."""
     creep: float = 0.25
     """Minimum commanded speed while not yet at a stop point (m/s)."""
     constant_speed: float | None = None
@@ -397,6 +399,11 @@ class SafetyConfig(FrozenModel):
     """Prediction time step (s)."""
     ttc_stop: float = 1.6
     """Time to conflict below which the supervisor commands an immediate stop (s)."""
+    ttc_hard: float = 0.6
+    """Time to conflict below which braking is always an emergency stop (s)."""
+    comfort_fraction: float = 0.6
+    """A yield becomes an emergency stop if it needs more than this fraction of the
+    comfort deceleration (the jerk-limited ramp loses some distance)."""
     ttc_yield: float = 3.5
     """Time to conflict below which the car yields to a moving agent (s)."""
     agent_margin: float = 0.6

@@ -117,7 +117,15 @@ class SafetySupervisor:
                 if ttc < cfg.ttc_yield:
                     yield_track, yield_kind = tr.id, track_kind(tr)
         if min_ttc < cfg.ttc_yield:
-            if min_ttc < cfg.ttc_stop and speed > 0.3:
+            # Emergency braking only when a comfortable, jerk-limited stop cannot make it:
+            # the deceleration needed to stop before the conflict point exceeds what the
+            # comfort controller provides. Otherwise the yield is a smooth predictive stop.
+            room = max(speed * min_ttc - cfg.stop_buffer, 0.05)
+            needed = speed**2 / (2 * room)
+            if speed > 0.3 and (
+                min_ttc < cfg.ttc_hard
+                or needed > cfg.comfort_fraction * self.vehicle.config.max_decel
+            ):
                 emergency = True
             limit = 0.0
             reason = f"yielding to {yield_kind}"

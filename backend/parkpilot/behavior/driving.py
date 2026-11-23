@@ -117,7 +117,16 @@ class Driver:
         cmd = self.follower.step(state, dt, limit, emergency=emergency)
         accel = cmd.accel
         if emergency and abs(state.speed) > 0.05:
-            accel = -math.copysign(self.vehicle.config.emergency_decel, state.speed)
+            # Full braking, ramped at the actuator's emergency jerk limit.
+            current = math.copysign(1.0, state.speed) * state.accel
+            target = max(
+                -self.vehicle.config.emergency_decel, current - self.speed_cfg.emergency_jerk * dt
+            )
+            accel = math.copysign(1.0, state.speed) * min(target, 0.0)
+        else:
+            # Actuator rate limit: brake pressure also releases over time after a stop.
+            step = self.speed_cfg.emergency_jerk * dt
+            accel = min(max(accel, state.accel - step), state.accel + step)
         out = ControlOutput(accel, cmd.steer, cmd.gear)
         if cmd.done:
             self.index += 1
