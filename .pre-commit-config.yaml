@@ -8,13 +8,13 @@ repos:
         entry: uv run --project backend end-of-file-fixer
         language: system
         types: [text]
-        exclude: ^frontend/src/generated/
+        exclude: ^frontend/(src/generated|schema)/
       - id: trailing-whitespace
         name: trailing-whitespace
         entry: uv run --project backend trailing-whitespace-fixer
         language: system
         types: [text]
-        exclude: ^frontend/src/generated/
+        exclude: ^frontend/(src/generated|schema)/
       - id: ruff
         name: ruff lint
         entry: bash -c 'cd backend && uv run ruff check .'

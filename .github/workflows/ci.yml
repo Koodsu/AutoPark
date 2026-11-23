@@ -50,3 +50,21 @@ jobs:
       - run: pnpm exec prettier --check .
       - run: pnpm exec vitest run
       - run: pnpm build
+
+  schema-drift:
+    name: Protocol schema drift check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv python install 3.12
+      - run: cd backend && uv sync --frozen
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: cd frontend && pnpm install --frozen-lockfile
+      - name: Regenerate schema and TS types, fail on any diff
+        run: make schema-check

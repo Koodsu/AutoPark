@@ -5,8 +5,8 @@ FRONTEND := frontend
 UV := uv run --project $(BACKEND)
 SEEDS ?= 5
 
-.PHONY: install dev backend-dev frontend-dev lint lint-backend lint-frontend test test-backend \
-	test-frontend bench bench-smoke schema e2e build format
+.PHONY: install dev lint lint-backend lint-frontend test test-backend test-frontend bench \
+	bench-smoke schema schema-check e2e build format
 
 install:
 	cd $(BACKEND) && uv sync
@@ -45,6 +45,13 @@ bench:
 bench-smoke:
 	cd $(BACKEND) && uv run parkpilot bench --seeds 1 --workers 4 \
 		--scenarios charger_stall,restricted_spots --docs ../bench-out --results ../bench-out/results.json --strict
+
+schema:
+	cd $(BACKEND) && uv run parkpilot export-schema
+	cd $(FRONTEND) && node scripts/gen-types.mjs
+
+schema-check: schema
+	git diff --exit-code -- frontend/schema frontend/src/generated
 
 build:
 	cd $(FRONTEND) && pnpm build

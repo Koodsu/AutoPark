@@ -1,0 +1,1268 @@
+{
+  "$defs": {
+    "AbortCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "abort",
+          "default": "abort",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "AbortCommand",
+      "type": "object"
+    },
+    "AckMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "type": {
+          "const": "ack",
+          "default": "ack",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "message"
+      ],
+      "title": "AckMessage",
+      "type": "object"
+    },
+    "ConfigResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "additionalProperties": true,
+          "title": "Config",
+          "type": "object"
+        },
+        "protocol_version": {
+          "title": "Protocol Version",
+          "type": "integer"
+        },
+        "systems": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Systems",
+          "type": "array"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "systems",
+        "config"
+      ],
+      "title": "ConfigResponse",
+      "type": "object"
+    },
+    "DebugLayer": {
+      "additionalProperties": false,
+      "description": "Ground truth, only sent when the HMI's debug toggle is on.",
+      "properties": {
+        "agents": {
+          "items": {
+            "$ref": "#/$defs/DebugObject"
+          },
+          "title": "Agents",
+          "type": "array"
+        },
+        "obstacles": {
+          "items": {
+            "$ref": "#/$defs/DebugObject"
+          },
+          "title": "Obstacles",
+          "type": "array"
+        },
+        "spots": {
+          "items": {
+            "$ref": "#/$defs/DebugObject"
+          },
+          "title": "Spots",
+          "type": "array"
+        },
+        "zones": {
+          "items": {
+            "$ref": "#/$defs/DebugObject"
+          },
+          "title": "Zones",
+          "type": "array"
+        }
+      },
+      "required": [
+        "obstacles",
+        "agents",
+        "spots",
+        "zones"
+      ],
+      "title": "DebugLayer",
+      "type": "object"
+    },
+    "DebugObject": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "polygon": {
+          "items": {
+            "additionalItems": false,
+            "items": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "title": "Polygon",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "polygon"
+      ],
+      "title": "DebugObject",
+      "type": "object"
+    },
+    "DirectionPreference": {
+      "description": "How the user likes to end up in a perpendicular stall (C15).",
+      "enum": [
+        "auto",
+        "nose_in",
+        "reverse_in",
+        "pull_through"
+      ],
+      "title": "DirectionPreference",
+      "type": "string"
+    },
+    "EgoView": {
+      "additionalProperties": false,
+      "properties": {
+        "footprint": {
+          "items": {
+            "items": {
+              "additionalItems": false,
+              "items": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "title": "Footprint",
+          "type": "array"
+        },
+        "pose": {
+          "$ref": "#/$defs/PoseModel"
+        },
+        "speed": {
+          "title": "Speed",
+          "type": "number"
+        },
+        "steer": {
+          "title": "Steer",
+          "type": "number"
+        }
+      },
+      "required": [
+        "pose",
+        "speed",
+        "steer",
+        "footprint"
+      ],
+      "title": "EgoView",
+      "type": "object"
+    },
+    "ErrorMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "type": {
+          "const": "error",
+          "default": "error",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "message"
+      ],
+      "title": "ErrorMessage",
+      "type": "object"
+    },
+    "FavoriteView": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "title": "Count",
+          "type": "integer"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "count"
+      ],
+      "title": "FavoriteView",
+      "type": "object"
+    },
+    "FrameMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "chosen_spot": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Chosen Spot"
+        },
+        "clearances": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Clearances",
+          "type": "object"
+        },
+        "debug": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DebugLayer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "done": {
+          "title": "Done",
+          "type": "boolean"
+        },
+        "ego": {
+          "$ref": "#/$defs/EgoView"
+        },
+        "goal": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PoseModel"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "grid": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GridPatch"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "handback_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Handback Reason"
+        },
+        "metrics": {
+          "$ref": "#/$defs/LiveMetrics"
+        },
+        "override_ack": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Override Ack"
+        },
+        "path": {
+          "items": {
+            "additionalItems": false,
+            "items": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Path",
+          "type": "array"
+        },
+        "paused": {
+          "title": "Paused",
+          "type": "boolean"
+        },
+        "protocol_version": {
+          "default": 1,
+          "title": "Protocol Version",
+          "type": "integer"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "safety_reason": {
+          "title": "Safety Reason",
+          "type": "string"
+        },
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        },
+        "speed_factor": {
+          "title": "Speed Factor",
+          "type": "number"
+        },
+        "spots": {
+          "items": {
+            "$ref": "#/$defs/SpotView"
+          },
+          "title": "Spots",
+          "type": "array"
+        },
+        "state": {
+          "title": "State",
+          "type": "string"
+        },
+        "system": {
+          "title": "System",
+          "type": "string"
+        },
+        "t": {
+          "title": "T",
+          "type": "number"
+        },
+        "tracks": {
+          "items": {
+            "$ref": "#/$defs/TrackView"
+          },
+          "title": "Tracks",
+          "type": "array"
+        },
+        "transitions": {
+          "items": {
+            "$ref": "#/$defs/TransitionView"
+          },
+          "title": "Transitions",
+          "type": "array"
+        },
+        "type": {
+          "const": "frame",
+          "default": "frame",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "protocol_version",
+        "seq",
+        "t",
+        "paused",
+        "speed_factor",
+        "system",
+        "state",
+        "reason",
+        "ego",
+        "chosen_spot",
+        "goal",
+        "path",
+        "spots",
+        "tracks",
+        "grid",
+        "clearances",
+        "metrics",
+        "transitions",
+        "safety_reason",
+        "handback_reason",
+        "override_ack",
+        "done",
+        "debug"
+      ],
+      "title": "FrameMessage",
+      "type": "object"
+    },
+    "GridInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "nx": {
+          "title": "Nx",
+          "type": "integer"
+        },
+        "ny": {
+          "title": "Ny",
+          "type": "integer"
+        },
+        "origin_x": {
+          "title": "Origin X",
+          "type": "number"
+        },
+        "origin_y": {
+          "title": "Origin Y",
+          "type": "number"
+        },
+        "resolution": {
+          "title": "Resolution",
+          "type": "number"
+        }
+      },
+      "required": [
+        "origin_x",
+        "origin_y",
+        "resolution",
+        "nx",
+        "ny"
+      ],
+      "title": "GridInfo",
+      "type": "object"
+    },
+    "GridPatch": {
+      "additionalProperties": false,
+      "description": "Occupancy grid as base64 uint8, row-major from the origin (0 unknown, 1-255 = p).",
+      "properties": {
+        "data": {
+          "title": "Data",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "version",
+        "data"
+      ],
+      "title": "GridPatch",
+      "type": "object"
+    },
+    "LiveMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "elapsed": {
+          "title": "Elapsed",
+          "type": "number"
+        },
+        "gear_changes": {
+          "title": "Gear Changes",
+          "type": "integer"
+        },
+        "hard_brakes": {
+          "title": "Hard Brakes",
+          "type": "integer"
+        },
+        "replans": {
+          "title": "Replans",
+          "type": "integer"
+        },
+        "speed": {
+          "title": "Speed",
+          "type": "number"
+        },
+        "spot_switches": {
+          "title": "Spot Switches",
+          "type": "integer"
+        },
+        "yield_events": {
+          "title": "Yield Events",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "elapsed",
+        "speed",
+        "gear_changes",
+        "replans",
+        "spot_switches",
+        "yield_events",
+        "hard_brakes"
+      ],
+      "title": "LiveMetrics",
+      "type": "object"
+    },
+    "LocationPreferenceView": {
+      "additionalProperties": false,
+      "properties": {
+        "favorites": {
+          "items": {
+            "$ref": "#/$defs/FavoriteView"
+          },
+          "title": "Favorites",
+          "type": "array"
+        },
+        "location_id": {
+          "title": "Location Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "location_id",
+        "favorites"
+      ],
+      "title": "LocationPreferenceView",
+      "type": "object"
+    },
+    "OverrideSpotCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "spot_id": {
+          "title": "Spot Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "override_spot",
+          "default": "override_spot",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "spot_id"
+      ],
+      "title": "OverrideSpotCommand",
+      "type": "object"
+    },
+    "PauseCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "pause",
+          "default": "pause",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "PauseCommand",
+      "type": "object"
+    },
+    "PoseModel": {
+      "additionalProperties": false,
+      "properties": {
+        "theta": {
+          "title": "Theta",
+          "type": "number"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "theta"
+      ],
+      "title": "PoseModel",
+      "type": "object"
+    },
+    "RankingWeights": {
+      "additionalProperties": false,
+      "description": "User-adjustable weights of the destination-aware spot cost (C4). Units: cost per unit.",
+      "properties": {
+        "charger": {
+          "default": 40.0,
+          "title": "Charger",
+          "type": "number"
+        },
+        "clearance": {
+          "default": 25.0,
+          "title": "Clearance",
+          "type": "number"
+        },
+        "drive_distance": {
+          "default": 0.15,
+          "title": "Drive Distance",
+          "type": "number"
+        },
+        "maneuver": {
+          "default": 6.0,
+          "title": "Maneuver",
+          "type": "number"
+        },
+        "preference_memory": {
+          "default": 30.0,
+          "title": "Preference Memory",
+          "type": "number"
+        },
+        "pull_through": {
+          "default": 4.0,
+          "title": "Pull Through",
+          "type": "number"
+        },
+        "walking": {
+          "default": 1.0,
+          "title": "Walking",
+          "type": "number"
+        }
+      },
+      "title": "RankingWeights",
+      "type": "object"
+    },
+    "ResumeCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "resume",
+          "default": "resume",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "ResumeCommand",
+      "type": "object"
+    },
+    "RunInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "scenario_id": {
+          "title": "Scenario Id",
+          "type": "string"
+        },
+        "system": {
+          "title": "System",
+          "type": "string"
+        },
+        "ws_path": {
+          "title": "Ws Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id",
+        "ws_path",
+        "scenario_id",
+        "system"
+      ],
+      "title": "RunInfo",
+      "type": "object"
+    },
+    "ScenarioSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "complaints": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Complaints",
+          "type": "array"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "lighting": {
+          "title": "Lighting",
+          "type": "number"
+        },
+        "location_id": {
+          "title": "Location Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "complaints",
+        "description",
+        "location_id",
+        "lighting"
+      ],
+      "title": "ScenarioSummary",
+      "type": "object"
+    },
+    "SceneMessage": {
+      "additionalProperties": false,
+      "description": "Sent once when a client connects: everything static about the run.",
+      "properties": {
+        "bounds": {
+          "additionalItems": false,
+          "items": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Bounds",
+          "type": "array"
+        },
+        "entrance": {
+          "additionalItems": false,
+          "items": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Entrance",
+          "type": "array"
+        },
+        "grid": {
+          "$ref": "#/$defs/GridInfo"
+        },
+        "protocol_version": {
+          "default": 1,
+          "title": "Protocol Version",
+          "type": "integer"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "scenario": {
+          "$ref": "#/$defs/ScenarioSummary"
+        },
+        "system": {
+          "title": "System",
+          "type": "string"
+        },
+        "type": {
+          "const": "scene",
+          "default": "scene",
+          "title": "Type",
+          "type": "string"
+        },
+        "vehicle": {
+          "$ref": "#/$defs/VehicleInfo"
+        }
+      },
+      "required": [
+        "type",
+        "protocol_version",
+        "run_id",
+        "system",
+        "scenario",
+        "bounds",
+        "entrance",
+        "grid",
+        "vehicle"
+      ],
+      "title": "SceneMessage",
+      "type": "object"
+    },
+    "SetDebugCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "type": {
+          "const": "set_debug",
+          "default": "set_debug",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "enabled"
+      ],
+      "title": "SetDebugCommand",
+      "type": "object"
+    },
+    "SetSpeedCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "factor": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 16.0,
+          "title": "Factor",
+          "type": "number"
+        },
+        "type": {
+          "const": "set_speed",
+          "default": "set_speed",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "factor"
+      ],
+      "title": "SetSpeedCommand",
+      "type": "object"
+    },
+    "SpotView": {
+      "additionalProperties": false,
+      "properties": {
+        "chosen": {
+          "title": "Chosen",
+          "type": "boolean"
+        },
+        "cost": {
+          "title": "Cost",
+          "type": "number"
+        },
+        "eligible": {
+          "title": "Eligible",
+          "type": "boolean"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "layout": {
+          "title": "Layout",
+          "type": "string"
+        },
+        "legal": {
+          "title": "Legal",
+          "type": "boolean"
+        },
+        "occupied": {
+          "title": "Occupied",
+          "type": "boolean"
+        },
+        "polygon": {
+          "items": {
+            "additionalItems": false,
+            "items": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "title": "Polygon",
+          "type": "array"
+        },
+        "rank": {
+          "title": "Rank",
+          "type": "integer"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "spot_type": {
+          "title": "Spot Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "polygon",
+        "layout",
+        "spot_type",
+        "legal",
+        "occupied",
+        "eligible",
+        "rank",
+        "cost",
+        "reasons",
+        "chosen",
+        "source"
+      ],
+      "title": "SpotView",
+      "type": "object"
+    },
+    "StartRunRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "scenario_id": {
+          "title": "Scenario Id",
+          "type": "string"
+        },
+        "seed": {
+          "default": 0,
+          "title": "Seed",
+          "type": "integer"
+        },
+        "settings": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UserSettings"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "system": {
+          "default": "parkpilot",
+          "enum": [
+            "parkpilot",
+            "baseline"
+          ],
+          "title": "System",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scenario_id",
+        "system",
+        "seed",
+        "settings"
+      ],
+      "title": "StartRunRequest",
+      "type": "object"
+    },
+    "TrackView": {
+      "additionalProperties": false,
+      "properties": {
+        "confirmed": {
+          "title": "Confirmed",
+          "type": "boolean"
+        },
+        "dynamic": {
+          "title": "Dynamic",
+          "type": "boolean"
+        },
+        "extent": {
+          "title": "Extent",
+          "type": "number"
+        },
+        "id": {
+          "title": "Id",
+          "type": "integer"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "vx": {
+          "title": "Vx",
+          "type": "number"
+        },
+        "vy": {
+          "title": "Vy",
+          "type": "number"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "x",
+        "y",
+        "vx",
+        "vy",
+        "extent",
+        "confirmed",
+        "dynamic",
+        "kind"
+      ],
+      "title": "TrackView",
+      "type": "object"
+    },
+    "TransitionView": {
+      "additionalProperties": false,
+      "properties": {
+        "dst": {
+          "title": "Dst",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "src": {
+          "title": "Src",
+          "type": "string"
+        },
+        "t": {
+          "title": "T",
+          "type": "number"
+        }
+      },
+      "required": [
+        "t",
+        "src",
+        "dst",
+        "reason"
+      ],
+      "title": "TransitionView",
+      "type": "object"
+    },
+    "Unlock": {
+      "description": "User-declared entitlements that make a restricted spot type legal (C5).",
+      "enum": [
+        "placard",
+        "charging",
+        "expectant",
+        "permit"
+      ],
+      "title": "Unlock",
+      "type": "string"
+    },
+    "UserSettings": {
+      "additionalProperties": false,
+      "description": "What the driver asked for on this trip.",
+      "properties": {
+        "direction": {
+          "$ref": "#/$defs/DirectionPreference",
+          "default": "auto"
+        },
+        "unlocks": {
+          "items": {
+            "$ref": "#/$defs/Unlock"
+          },
+          "title": "Unlocks",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "weights": {
+          "$ref": "#/$defs/RankingWeights",
+          "default": {
+            "charger": 40.0,
+            "clearance": 25.0,
+            "drive_distance": 0.15,
+            "maneuver": 6.0,
+            "preference_memory": 30.0,
+            "pull_through": 4.0,
+            "walking": 1.0
+          }
+        }
+      },
+      "title": "UserSettings",
+      "type": "object"
+    },
+    "VehicleInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "length": {
+          "title": "Length",
+          "type": "number"
+        },
+        "mirror_width": {
+          "title": "Mirror Width",
+          "type": "number"
+        },
+        "rear_overhang": {
+          "title": "Rear Overhang",
+          "type": "number"
+        },
+        "wheelbase": {
+          "title": "Wheelbase",
+          "type": "number"
+        },
+        "width": {
+          "title": "Width",
+          "type": "number"
+        }
+      },
+      "required": [
+        "length",
+        "width",
+        "mirror_width",
+        "wheelbase",
+        "rear_overhang"
+      ],
+      "title": "VehicleInfo",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "ParkPilot wire protocol v1",
+  "properties": {
+    "client_command": {
+      "discriminator": {
+        "mapping": {
+          "abort": "#/$defs/AbortCommand",
+          "override_spot": "#/$defs/OverrideSpotCommand",
+          "pause": "#/$defs/PauseCommand",
+          "resume": "#/$defs/ResumeCommand",
+          "set_debug": "#/$defs/SetDebugCommand",
+          "set_speed": "#/$defs/SetSpeedCommand"
+        },
+        "propertyName": "type"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/OverrideSpotCommand"
+        },
+        {
+          "$ref": "#/$defs/PauseCommand"
+        },
+        {
+          "$ref": "#/$defs/ResumeCommand"
+        },
+        {
+          "$ref": "#/$defs/AbortCommand"
+        },
+        {
+          "$ref": "#/$defs/SetSpeedCommand"
+        },
+        {
+          "$ref": "#/$defs/SetDebugCommand"
+        }
+      ],
+      "title": "Client Command"
+    },
+    "config_response": {
+      "$ref": "#/$defs/ConfigResponse"
+    },
+    "location_preference": {
+      "$ref": "#/$defs/LocationPreferenceView"
+    },
+    "run_info": {
+      "$ref": "#/$defs/RunInfo"
+    },
+    "scenario_summary": {
+      "$ref": "#/$defs/ScenarioSummary"
+    },
+    "server_message": {
+      "discriminator": {
+        "mapping": {
+          "ack": "#/$defs/AckMessage",
+          "error": "#/$defs/ErrorMessage",
+          "frame": "#/$defs/FrameMessage",
+          "scene": "#/$defs/SceneMessage"
+        },
+        "propertyName": "type"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/SceneMessage"
+        },
+        {
+          "$ref": "#/$defs/FrameMessage"
+        },
+        {
+          "$ref": "#/$defs/AckMessage"
+        },
+        {
+          "$ref": "#/$defs/ErrorMessage"
+        }
+      ],
+      "title": "Server Message"
+    },
+    "start_run_request": {
+      "$ref": "#/$defs/StartRunRequest"
+    },
+    "user_settings": {
+      "$ref": "#/$defs/UserSettings"
+    }
+  },
+  "required": [
+    "server_message",
+    "client_command",
+    "start_run_request",
+    "run_info",
+    "scenario_summary",
+    "config_response",
+    "user_settings",
+    "location_preference"
+  ],
+  "title": "ParkPilotProtocol",
+  "type": "object"
+}

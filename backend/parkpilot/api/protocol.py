@@ -21,7 +21,7 @@ Polygon = list[Vec2]
 
 
 class _Wire(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", json_schema_serialization_defaults_required=True)
 
 
 class PoseModel(_Wire):
@@ -266,8 +266,22 @@ class ProtocolSchema(_Wire):
     location_preference: LocationPreferenceView
 
 
+def _tuples_as_items(node: object) -> object:
+    """Rewrite draft-2020 ``prefixItems`` as draft-07 tuple ``items`` for TS codegen."""
+    if isinstance(node, dict):
+        out = {k: _tuples_as_items(v) for k, v in node.items()}
+        if "prefixItems" in out:
+            out["items"] = out.pop("prefixItems")
+            out["additionalItems"] = False
+        return out
+    if isinstance(node, list):
+        return [_tuples_as_items(v) for v in node]
+    return node
+
+
 def export_schema() -> str:
-    schema = ProtocolSchema.model_json_schema()
+    schema = _tuples_as_items(ProtocolSchema.model_json_schema(mode="serialization"))
+    assert isinstance(schema, dict)
     schema["title"] = "ParkPilotProtocol"
     schema["description"] = f"ParkPilot wire protocol v{PROTOCOL_VERSION}"
     return json.dumps(schema, indent=2, sort_keys=True)
