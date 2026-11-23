@@ -16,5 +16,46 @@ class FrozenModel(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
 
+class VehicleConfig(FrozenModel):
+    """Geometry and limits of the ego vehicle. Reference point is the rear-axle centre."""
+
+    length: float = 4.75
+    """Bumper-to-bumper length (m)."""
+    width: float = 1.92
+    """Body width without mirrors (m)."""
+    wheelbase: float = 2.88
+    """Rear axle to front axle (m)."""
+    rear_overhang: float = 0.95
+    """Rear axle to rear bumper (m)."""
+    mirror_width: float = 2.12
+    """Tip-to-tip width across the folded-out mirrors (m)."""
+    mirror_from_front: float = 1.75
+    """Front bumper to the mirror centre line (m)."""
+    mirror_length: float = 0.22
+    """Longitudinal size of a mirror housing (m)."""
+    max_steer: float = 0.60
+    """Maximum road-wheel steering angle (rad); gives ~4.2 m minimum rear-axle radius."""
+    max_steer_rate: float = 0.9
+    """Steering actuator rate limit (rad/s)."""
+    max_speed: float = 4.5
+    """Speed cap inside a parking lot (m/s)."""
+    max_reverse_speed: float = 2.0
+    """Speed cap while reversing (m/s)."""
+    max_accel: float = 1.5
+    """Comfortable acceleration limit (m/s^2)."""
+    max_decel: float = 2.5
+    """Comfortable deceleration limit (m/s^2)."""
+    emergency_decel: float = 6.0
+    """Deceleration available to the safety supervisor (m/s^2)."""
+    charge_port_x: float = -0.62
+    """Charge port longitudinal position relative to the rear axle (m, + forward)."""
+    charge_port_y: float = 0.96
+    """Charge port lateral position (m, + left). Default: rear-left, like many EVs."""
+    collision_circles: int = 5
+    """Number of disks used to approximate the footprint in the planner's fast check."""
+
+
 class ParkPilotConfig(FrozenModel):
     """Root configuration for one autonomy stack instance."""
+
+    vehicle: VehicleConfig = VehicleConfig()
