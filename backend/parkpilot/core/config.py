@@ -362,6 +362,39 @@ class ControlConfig(FrozenModel):
     """Cross-track error beyond which the behavior layer requests a re-plan (m)."""
 
 
+class SafetyConfig(FrozenModel):
+    """Safety supervisor: TTC, uncertainty-inflated margins, persistence filter (C7, C8, C12)."""
+
+    base_margin: float = 0.12
+    """Footprint margin in perfect conditions (m)."""
+    sigma_gain: float = 0.6
+    """Extra margin per metre of depth-noise sigma (night widens margins)."""
+    check_margin_fraction: float = 0.5
+    """Fraction of the planning margin the supervisor requires before it intervenes."""
+    horizon: float = 4.0
+    """Prediction horizon for agents (s)."""
+    time_step: float = 0.2
+    """Prediction time step (s)."""
+    ttc_stop: float = 1.6
+    """Time to conflict below which the supervisor commands an immediate stop (s)."""
+    ttc_yield: float = 3.5
+    """Time to conflict below which the car yields to a moving agent (s)."""
+    agent_margin: float = 0.6
+    """Extra radius kept around predicted agents (m)."""
+    backing_radius: float = 2.0
+    """Extra keep-out radius around a car showing reverse lights (intent cue) (m)."""
+    stop_buffer: float = 0.3
+    """Distance kept before a static blockage when stopping (m)."""
+    comfort_decel: float = 1.5
+    """Deceleration used to compute speed limits ahead of hazards (m/s^2)."""
+    lookahead_buffer: float = 2.5
+    """Path distance checked beyond the stopping distance (m)."""
+    clear_time: float = 0.8
+    """An agent must be clear this long before the car resumes after yielding (s)."""
+    persistence_filter: bool = True
+    """Only confirmed tracks may trigger stops. The baseline disables this."""
+
+
 class DirectionPreference(StrEnum):
     """How the user likes to end up in a perpendicular stall (C15)."""
 
@@ -425,3 +458,4 @@ class ParkPilotConfig(FrozenModel):
     goal: GoalConfig = GoalConfig()
     speed: SpeedConfig = SpeedConfig()
     control: ControlConfig = ControlConfig()
+    safety: SafetyConfig = SafetyConfig()
