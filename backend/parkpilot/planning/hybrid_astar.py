@@ -200,10 +200,58 @@ class HybridAStar:
         return float(c.clearance_cost * np.sum(deficit) * ds)
 
     # -- search ----------------------------------------------------------------------------
-    def plan(self, start: Pose, goal: Pose, checker: CollisionChecker) -> PlanResult:
-        c = self.cfg
+    def plan(
+        self,
+        start: Pose,
+        goal: Pose,
+        checker: CollisionChecker,
+        final_straight: float = 0.0,
+        final_direction: int = 1,
+    ) -> PlanResult:
+        """Plan from ``start`` to ``goal``.
+
+        With ``final_straight > 0`` the path ends with a straight segment of that length in
+        ``final_direction``: the car arrives with the wheels straight, which is what makes
+        the final pose precise (a path ending mid-arc leaves the steering no distance to
+        unwind).
+        """
         if not checker.free(np.array([[goal.x, goal.y, goal.theta]]))[0]:
             return PlanResult(False, None, 0, "goal pose is in collision")
+        if final_straight <= 0.0:
+            return self._plan(start, goal, checker)
+        d = 1 if final_direction >= 0 else -1
+        pre = goal.compose(Pose(-d * final_straight, 0.0, 0.0))
+        k = max(2, math.ceil(final_straight / self.cfg.collision_step))
+        s = np.linspace(final_straight / k, final_straight, k) * d
+        tail = np.stack(
+            [
+                pre.x + s * math.cos(pre.theta),
+                pre.y + s * math.sin(pre.theta),
+                np.full(k, pre.theta),
+            ],
+            axis=1,
+        )
+        if (
+            not checker.path_free(tail)
+            or not checker.free(np.array([[pre.x, pre.y, pre.theta]]))[0]
+        ):
+            return self._plan(start, goal, checker)
+        res = self._plan(start, pre, checker)
+        if not res.success or res.path is None:
+            return self._plan(start, goal, checker)
+        p = res.path
+        extra = final_straight * (self.cfg.reverse_multiplier if d < 0 else 1.0)
+        if len(p.directions) and p.directions[-1] != d:
+            extra += self.cfg.gear_change_cost
+        res.path = Path(
+            np.vstack([p.poses, tail]),
+            np.concatenate([p.directions, np.full(k, float(d))]),
+            p.cost + extra,
+        )
+        return res
+
+    def _plan(self, start: Pose, goal: Pose, checker: CollisionChecker) -> PlanResult:
+        c = self.cfg
         h2d, cell, origin = self._holonomic(checker, goal)
         radius = self.vehicle.min_turn_radius * 1.05
         rs_cache: dict[tuple[int, int, int], float] = {}

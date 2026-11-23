@@ -281,6 +281,8 @@ class PlannerConfig(FrozenModel):
     """Search budget; deterministic (no wall-clock limits)."""
     safety_margin: float = 0.15
     """Base clearance added around the footprint (incl. mirrors) for collision checks (m)."""
+    final_straight: float = 1.2
+    """Length of the straight segment that ends perpendicular parking paths (m)."""
 
 
 class GoalConfig(FrozenModel):

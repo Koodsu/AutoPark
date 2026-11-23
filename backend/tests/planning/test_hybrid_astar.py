@@ -88,3 +88,19 @@ def test_path_segments_split_at_cusps() -> None:
     assert segs[1].directions[0] == -1
     assert Path(np.zeros((0, 3)), np.zeros(0)).segments() == []
     assert Path(np.zeros((1, 3)), np.ones(1)).length == 0.0
+
+
+def test_final_straight_appended() -> None:
+    planner = HybridAStar(PlannerConfig(), VEH)
+    checker = CollisionChecker(_open_grid(), VEH, 0.15)
+    goal = Pose(0, 8, math.pi / 2)
+    res = planner.plan(Pose(-10, 0, 0), goal, checker, final_straight=1.2, final_direction=-1)
+    assert res.success and res.path is not None
+    assert res.path.end.distance_to(goal) < 1e-6
+    tail = res.path.poses[-6:]
+    assert np.allclose(tail[:, 2], goal.theta)
+    assert (res.path.directions[-6:] == -1).all()
+    # A blocked straight falls back to a plain plan.
+    blocked = CollisionChecker(_open_grid([(-0.5, 9.0, 0.5, 9.4)]), VEH, 0.15)
+    res2 = planner.plan(Pose(-10, 0, 0), Pose(0, 5, -math.pi / 2), blocked, 1.2, -1)
+    assert res2.success
