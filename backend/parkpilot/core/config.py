@@ -225,6 +225,25 @@ class SpotDetectionConfig(FrozenModel):
     """Line-less candidates closer than this are the same spot across frames (m)."""
 
 
+class RankingConfig(FrozenModel):
+    """Non-user tunables of spot ranking (C3, C4)."""
+
+    door_clearance: float = 0.7
+    """Body-to-neighbor gap that lets a door open comfortably (m)."""
+    min_side_margin: float = 0.2
+    """Hard minimum mirror-to-neighbor gap for a stall to count as physically usable (m)."""
+    neighbor_search: float = 2.0
+    """How far beyond the stall edges to look for neighbors (m)."""
+    tight_width: float = 3.4
+    """Free width at or above which maneuver difficulty from tightness is zero (m)."""
+    parallel_difficulty: float = 1.0
+    """Extra difficulty for parallel stalls."""
+    reverse_difficulty: float = 0.4
+    """Extra difficulty when the chosen entry direction requires reversing in."""
+    memory_radius: float = 1.5
+    """A remembered favorite matches a stall whose centre is this close (m)."""
+
+
 class DirectionPreference(StrEnum):
     """How the user likes to end up in a perpendicular stall (C15)."""
 
@@ -262,6 +281,8 @@ class RankingWeights(FrozenModel):
     """Bonus (subtracted) for a spot matching a remembered per-location preference (C15)."""
     drive_distance: float = 0.15
     """Cost per metre of driving needed to reach the spot."""
+    charger: float = 40.0
+    """Bonus (subtracted) for a charger stall when the user intends to charge."""
 
 
 class UserSettings(FrozenModel):
@@ -281,3 +302,4 @@ class ParkPilotConfig(FrozenModel):
     grid: GridConfig = GridConfig()
     tracker: TrackerConfig = TrackerConfig()
     spots: SpotDetectionConfig = SpotDetectionConfig()
+    ranking: RankingConfig = RankingConfig()

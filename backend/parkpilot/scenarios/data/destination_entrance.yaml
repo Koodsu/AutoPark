@@ -17,6 +17,7 @@ rows:
     count: 17
     occupied: [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 14, 16]
     trucks: [11, 13]
+    offsets: {11: [0.3, 0], 13: [-0.3, 0]}
   - prefix: B
     first_center: [52.8, 10.6, -90]
     count: 17
