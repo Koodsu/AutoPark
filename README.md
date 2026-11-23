@@ -28,29 +28,31 @@ line-centred nose-in, no fallback). Full report: [docs/BENCHMARK.md](docs/BENCHM
 
 | Metric | Baseline | ParkPilot |
 |---|---:|---:|
-| Park success rate (excl. expected handbacks) | 60% | 99% |
+| Park success rate (excl. expected handbacks) | 64% | 100% |
 | Collisions (total) | 7 | 0 |
-| Curb contacts (total) | 35 | 0 |
+| Curb contacts (total) | 18 | 0 |
 | Legality violations (total) | 10 | 0 |
 | Missed hazards (total) | 0 | 0 |
-| False stops (total) | 745 | 30 |
-| Gear changes per park | 8.9 | 2.1 |
-| Re-plans per park | 19.3 | 0.1 |
-| Time to park (s) | 60.1 | 44.4 |
-| Mean speed (m/s) | 0.58 | 1.16 |
-| Peak jerk (m/s^3) | 44.3 | 24.4 |
-| Final lateral error (m) | 0.09 | 0.06 |
-| Final heading error (deg) | 2.8 | 1.5 |
-| Min side clearance at rest (m) | 0.99 | 0.84 |
-| Walking distance (m) | 16.7 | 13.0 |
-| Selection matches oracle | 24% | 86% |
+| False stops (total) | 764 | 35 |
+| Gear changes per park | 8.5 | 2.3 |
+| Re-plans per park | 19.0 | 0.1 |
+| Time to park (s) | 59.9 | 46.8 |
+| Mean speed (m/s) | 0.60 | 1.19 |
+| Peak jerk, raw (m/s^3) | 13.9 | 8.3 |
+| Peak jerk excl. emergency stops (m/s^3) | 4.6 | 2.4 |
+| Final lateral error (m) | 0.10 | 0.04 |
+| Final heading error (deg) | 3.0 | 0.6 |
+| Min side clearance at rest (m) | 0.93 | 0.84 |
+| Walking distance (m) | 16.6 | 12.7 |
+| Selection matches oracle | 30% | 100% |
 | Abort/handback with reason | 0% | 100% |
 
-Across 160 runs ParkPilot had 0 collisions, 0 curb contacts, 0 legality violations and 0
-missed hazards. "Min side clearance at rest" is lower for ParkPilot only because the
+Across 160 runs ParkPilot parked in every run where parking was the right outcome, with 0
+collisions, 0 curb contacts, 0 legality violations and 0 missed hazards; every final
+heading is within 1.5 deg and every charge port within 0.5 m of its charger. "Min side clearance at rest" is lower for ParkPilot only because the
 baseline mostly ends up in roomy stalls far from the entrance.
 
-![Baseline dancing in the same lot](docs/img/baseline_dance.png)
+![The baseline in dance_spot_opens: memoryless perception, it stops for every flicker](docs/img/baseline_memoryless.png)
 
 ## Quickstart
 
@@ -110,22 +112,26 @@ and the ADRs in [docs/adr/](docs/adr/).
 - Ego localization is assumed perfect.
 - Planning latency is not simulated (the sim pauses while Hybrid A* runs).
 - Line-less inference only offers gaps between two parked vehicles, not open row ends.
-- Pure Python: Hybrid A* runs ~1-2 ms per expansion; nose-in through a 6.4 m garage aisle
-  can exhaust the search budget (the car then tries reversing in or another spot).
+- Pure Python: Hybrid A* runs ~1-2 ms per expansion. In tight aisles it can exhaust its
+  budget; it then retries with 3x the budget and a finer steering set before the fallback
+  ladder moves on (garage_pillars now parks 5/5).
 - The baseline re-plans on a 2 s timer rather than every perception frame (every frame
   would be slower to benchmark and only worse for the baseline).
 
 ## Where ParkPilot still underperforms
 
-- `garage_pillars`: 4/5 seeds park; in one seed Hybrid A* cannot find a reverse-in path
-  through the 6.4 m aisle within its expansion budget and the car hands back.
-- Charger alignment: the port ends up 1.16 m (`charger_stall`) and 1.31 m
-  (`home_garage`) from the charger, against a 0.5 m target; pulling in is limited by the
-  goal's extra safety slack, and in the home garage this is just past the 1.2 m reach.
-- Parallel parking ends with ~3.5 deg heading error: paths there end on an arc, which the
-  controller cannot fully unwind (perpendicular paths end with a straight segment).
-- `dynamic_agents`: about 17 s lost yielding per run; conservative TTC margins make it
-  wait for agents that would have cleared.
-- A small number of false stops remain (30 over 80 runs), mostly yields to clutter that
-  briefly looks like a mover at night or near parked-car outlines.
-- Peak jerk (~24 m/s^3) is dominated by stop transients at cusps, not cruising.
+- `dynamic_agents`: about 18 s lost yielding per run. The car waits until predicted
+  conflicts clear, including for a car that backs out and then drives slowly ahead of it.
+  A car-following mode was tried; it cut yield time to ~15 s but made time-to-park worse
+  (more gear changes behind a slow car), so it was not kept.
+- Raw peak jerk reaches 40 m/s^3 (the emergency brake build-up limit) in scenarios where
+  a pedestrian steps out from between parked cars and is confirmed late. Peak jerk
+  excluding those genuine emergency stops is ~2-5 m/s^3.
+- 35 false stops remain over 80 runs (the baseline has 764). They are brief yields to
+  clutter that looks like a moving object for a few frames.
+- Charger alignment depends on mounting: with the port 0.33 m inside the rear bumper and
+  no bumper overhang in the 2D model, a pedestal *behind* the stall head cannot get within
+  0.5 m. The scenarios use pedestals on the stall line and a wall box on the garage side
+  wall, as many installations do.
+- REFINE corrections add time and gear changes in tight or noisy (night) spots
+  (night_bollards: up to 7 gear changes in one seed).

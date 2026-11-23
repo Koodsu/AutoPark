@@ -2,10 +2,11 @@ id: dance_spot_opens
 title: A spot opens up after the car has committed
 complaints: [C1, C12]
 description: >
-  The car commits to a free stall. While it approaches, a parked car closer to the entrance
-  backs out, opening a spot that is only slightly better. Systems without commitment hop to
-  the new spot and re-plan mid-maneuver; ParkPilot yields to the backing car, keeps its
-  commitment (the new spot is not clearly better) and parks with few gear changes.
+  A free stall is visible early; while the car looks for something closer to the door, a
+  parked car near the entrance backs out into the aisle. ParkPilot yields to it and takes
+  the opened stall if it has not yet committed (a commitment is only abandoned for a
+  clearly better spot), parking with few gear changes. The baseline grabs the first stall
+  it sees and keeps re-planning on a timer, shuffling back and forth.
 location_id: pharmacy_lot
 bounds: [0, 0, 64, 34]
 entrance: [42, 33]
