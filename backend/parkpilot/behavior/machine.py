@@ -328,6 +328,7 @@ class ParkPilotAutonomy:
             near_opt = best.cost - best.terms.get("drive", 0.0) <= bound
             if Unlock.CHARGING in self.settings.unlocks and best.candidate.charger is None:
                 near_opt = False  # a charger stall may still be ahead
+                covered = not self.driver.active
             if self.remembered and "memory" not in best.terms:
                 near_opt = False  # the usual spot may still be ahead
             if covered or near_opt or self._override is not None or self._circles > 0:
