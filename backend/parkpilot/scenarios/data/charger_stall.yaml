@@ -2,7 +2,8 @@ id: charger_stall
 title: Charger stalls with the post on one side
 complaints: [C11]
 description: >
-  A row of charger stalls with the charging post at the head of each stall, on its right.
+  Four 3.2 m charger stalls, each with a charging pedestal on its right-hand stall line
+  near the head.
   The ego's charge port is on the rear-left, so the car must reverse in to put the port next
   to the post, and pull in far enough that the cable reaches (owners report cars stopping
   "a foot short"). The driver has said they want to charge.
@@ -16,10 +17,22 @@ user:
 rows:
   - prefix: A
     first_center: [8, 23.4, 90]
-    count: 15
-    types: {9: ev_charging, 10: ev_charging, 11: ev_charging, 12: ev_charging}
-    chargers: {9: right, 10: right, 11: right, 12: right}
-    occupied: [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 12, 13, 14]
+    count: 9
+    occupied: [0, 1, 2, 3, 5, 6, 7, 8]
+  # Charger stalls are 3.2 m wide; a pedestal stands on each stall's right-hand line near
+  # the head.
+  - prefix: C
+    first_center: [33.4, 23.4, 90]
+    count: 4
+    stall_width: 3.2
+    types: {0: ev_charging, 1: ev_charging, 2: ev_charging, 3: ev_charging}
+    chargers: {0: right, 1: right, 2: right, 3: right}
+    charger_mounts: {0: [1.9, -1.6], 1: [1.9, -1.6], 2: [1.9, -1.6], 3: [1.9, -1.6]}
+    occupied: [0, 1, 3]
+  - prefix: D
+    first_center: [46.0, 23.4, 90]
+    count: 2
+    occupied: [0, 1]
   - prefix: B
     first_center: [47.2, 10.6, -90]
     count: 15

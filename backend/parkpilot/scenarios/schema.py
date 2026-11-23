@@ -58,6 +58,8 @@ class RowDef(_Model):
     """Per-stall (lateral m, yaw deg) offsets of the parked vehicle (crooked neighbors)."""
     chargers: dict[int, Literal["left", "right"]] = Field(default_factory=dict)
     """Charger posts at the head of these stalls, on the given side of the stall heading."""
+    charger_mounts: dict[int, tuple[float, float]] = Field(default_factory=dict)
+    """Explicit charger positions (longitudinal, lateral m in the stall frame)."""
     vehicle_sizes: dict[int, tuple[float, float]] = Field(default_factory=dict)
 
 
@@ -175,7 +177,12 @@ def build_world(sc: Scenario) -> World:
         )
         spots, lines = build_row(spec, dict(row.types))
         for idx, side in row.chargers.items():
-            ch = charger_for_spot(f"ch_{row.prefix}{idx}", spots[idx], 1 if side == "left" else -1)
+            ch = charger_for_spot(
+                f"ch_{row.prefix}{idx}",
+                spots[idx],
+                1 if side == "left" else -1,
+                mount=row.charger_mounts.get(idx),
+            )
             world.chargers.append(ch)
             world.obstacles.append(charger_obstacle(ch))
             world.features.append(Feature(FeatureKind.CHARGER, ch.position, "charger"))

@@ -27,10 +27,17 @@ def test_legality_truth() -> None:
 def test_run_one_parkpilot_charger() -> None:
     m = run_one("charger_stall", "parkpilot", 0)
     assert m.parked and m.collisions == 0 and m.violations == 0
-    assert m.port_error is not None and m.port_error < 1.2
+    # C11 regression: the port must end within 0.5 m of the charger, not "a foot short".
+    assert m.port_error is not None and m.port_error <= 0.5
     assert m.oracle_match is True
     assert m.time_to_park is not None and m.mean_speed > 0.5
-    assert m.final_lateral_error is not None and m.final_lateral_error < 0.2
+    assert m.final_heading_error_deg is not None and m.final_heading_error_deg <= 1.5
+
+
+def test_home_garage_wall_charger_within_half_a_metre() -> None:
+    m = run_one("home_garage", "parkpilot", 1)
+    assert m.parked and m.collisions == 0 and m.curb_contacts == 0
+    assert m.port_error is not None and m.port_error <= 0.5
 
 
 def test_memory_protocol_repeat_visit() -> None:

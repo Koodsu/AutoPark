@@ -120,7 +120,7 @@ def test_charger_goal_puts_port_within_reach() -> None:
     from parkpilot.spots.rank import wants_reverse_in
 
     _, world, out, cands, _ = survey("charger_stall")
-    cand = _cand_near(cands, world, "A11")
+    cand = _cand_near(cands, world, "C2")
     settings = UserSettings(unlocks=frozenset({Unlock.CHARGING}))
     classify(cand, out.semantic, settings.unlocks, CFG.spots)
     assert cand.charger is not None and cand.legal
@@ -137,6 +137,6 @@ def test_charger_goal_puts_port_within_reach() -> None:
         obstacle_points=out.grid.occupied_points(),
     )
     assert res.ok and res.port_distance is not None
-    truth = world.charger(world.spot("A11").charger_id or "")
+    truth = world.charger(world.spot("C2").charger_id or "")
     port = VEH.charge_port(res.pose)
     assert float(np.hypot(*(port - np.array(truth.position)))) < truth.cable_reach

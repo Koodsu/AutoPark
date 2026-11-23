@@ -55,6 +55,8 @@ class SpotCandidate:
     spot_type: SpotType = SpotType.STANDARD
     zone: ZoneType | None = None
     charger: tuple[float, float] | None = None
+    chargers: list[tuple[float, float]] = field(default_factory=list)
+    """Every charger that could serve this stall (a pedestal on a line serves two)."""
     legal: bool = True
     reasons: list[str] = field(default_factory=list)
     """Human-readable legality notes."""

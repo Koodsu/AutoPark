@@ -74,7 +74,9 @@ def compute_goal(
         head_sign = 1.0
     port_distance = None
     if cand.charger is not None and cand.layout is SpotLayout.PERPENDICULAR:
-        lon, port_distance, msg = _charger_depth(cand, heading, lat, lon, vehicle, cfg, checker)
+        lat, lon, port_distance, msg = _charger_depth(
+            cand, heading, lat, lon, vehicle, cfg, checker
+        )
         reasons.append(msg)
 
     def center_for(dlat: float, dlon: float) -> Pose:
@@ -190,20 +192,36 @@ def _charger_depth(
     vehicle: VehicleModel,
     cfg: GoalConfig,
     checker: CollisionChecker,
-) -> tuple[float, float, str]:
-    """Pull in until the charge port is within ``port_target`` of the charger, if possible."""
+) -> tuple[float, float, float, str]:
+    """Joint lateral/longitudinal search for the collision-free pose whose charge port is
+    closest to the charger (C11). Port distance is the objective; ties prefer staying near
+    the centred pose. Returns (lat, lon, port distance, reason)."""
     assert cand.charger is not None
     charger = np.array(cand.charger)
-    best_lon, best_d = lon, math.inf
-    for k in range(25):
-        dlon = lon + 0.05 * k
-        c = cand.pose.compose(Pose(dlon, lat, 0.0))
-        rear = vehicle.rear_axle_from_center(Pose(c.x, c.y, heading))
-        if not checker.free(np.array([[rear.x, rear.y, rear.theta]]))[0]:
-            break
-        d = float(np.hypot(*(vehicle.charge_port(rear) - charger)))
-        if d < best_d:
-            best_lon, best_d = dlon, d
-        if d <= cfg.port_target:
-            break
-    return best_lon, best_d, f"charge port {best_d:.2f} m from charger"
+    step = cfg.search_step
+    lats = lat + np.arange(-cfg.port_search_lateral, cfg.port_search_lateral + 1e-9, step)
+    lons = lon + np.arange(-0.3, cfg.port_search_longitudinal + 1e-9, step)
+    grid_lat, grid_lon = np.meshgrid(lats, lons)
+    cands = np.stack([grid_lon.ravel(), grid_lat.ravel()], axis=1)
+    centers = cand.pose.to_world(cands)
+    c_off = vehicle.config.length / 2 - vehicle.config.rear_overhang
+    rear = np.stack(
+        [
+            centers[:, 0] - c_off * math.cos(heading),
+            centers[:, 1] - c_off * math.sin(heading),
+            np.full(len(centers), heading),
+        ],
+        axis=1,
+    )
+    px = vehicle.config.charge_port_x
+    py = vehicle.config.charge_port_y
+    ch, sh = math.cos(heading), math.sin(heading)
+    ports = np.stack([rear[:, 0] + ch * px - sh * py, rear[:, 1] + sh * px + ch * py], axis=1)
+    dist = np.hypot(ports[:, 0] - charger[0], ports[:, 1] - charger[1])
+    # Prefer smaller port distance, then smaller deviation from the centred pose.
+    order = np.lexsort((np.abs(cands[:, 1] - lat) + np.abs(cands[:, 0] - lon), np.round(dist, 2)))
+    for k in order[:400]:
+        if checker.free(rear[k : k + 1])[0]:
+            d = float(dist[k])
+            return float(cands[k, 1]), float(cands[k, 0]), d, f"charge port {d:.2f} m from charger"
+    return lat, lon, math.inf, "no reachable pose near the charger"

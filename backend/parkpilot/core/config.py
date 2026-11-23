@@ -312,6 +312,10 @@ class GoalConfig(FrozenModel):
     """Target body-to-curb gap for parallel parking (m)."""
     port_target: float = 0.5
     """Desired charge-port-to-charger distance (m); the cable reach is ~1.2 m."""
+    port_search_lateral: float = 0.5
+    """Lateral range searched for the port-optimal charger pose (m)."""
+    port_search_longitudinal: float = 1.2
+    """How far toward the stall head the port-optimal search may pull in (m)."""
     search_step: float = 0.05
     """Step of the local search for a collision-free goal near the ideal one (m)."""
     search_extent: float = 0.4

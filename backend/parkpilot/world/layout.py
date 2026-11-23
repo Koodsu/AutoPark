@@ -130,17 +130,31 @@ def parked_vehicle(
     return Obstacle(obstacle_id, kind, rect_polygon(center, ln, wd), 2.0 if truck else 1.5)
 
 
-def charger_for_spot(charger_id: str, spot: Spot, side: int, reach: float = 1.2) -> Charger:
-    """Charger post at the head of a stall on ``side`` (+1 left, -1 right of the heading)."""
-    p = spot.pose.compose(Pose(spot.length / 2 + 0.35, side * (spot.width / 2 - 0.35), 0.0))
+def charger_for_spot(
+    charger_id: str,
+    spot: Spot,
+    side: int,
+    reach: float = 1.2,
+    mount: tuple[float, float] | None = None,
+) -> Charger:
+    """Charger post for a stall.
+
+    By default it stands at the head of the stall on ``side`` (+1 left, -1 right of the
+    heading). ``mount`` gives an explicit (longitudinal, lateral) position in the stall
+    frame instead, e.g. a pedestal on the side line or a wall unit in a home garage.
+    """
+    if mount is not None:
+        p = spot.pose.compose(Pose(mount[0], mount[1], 0.0))
+    else:
+        p = spot.pose.compose(Pose(spot.length / 2 + 0.35, side * (spot.width / 2 - 0.35), 0.0))
     return Charger(charger_id, (p.x, p.y), reach)
 
 
-def charger_obstacle(charger: Charger) -> Obstacle:
+def charger_obstacle(charger: Charger, size: float = 0.3) -> Obstacle:
     return Obstacle(
         f"post_{charger.id}",
         ObstacleKind.CHARGER,
-        rect_polygon(Pose(charger.position[0], charger.position[1], 0.0), 0.4, 0.4),
+        rect_polygon(Pose(charger.position[0], charger.position[1], 0.0), size, size),
         1.4,
     )
 

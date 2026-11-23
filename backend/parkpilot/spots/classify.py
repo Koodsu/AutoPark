@@ -45,14 +45,14 @@ def classify(
     poly = cand.polygon()
     type_votes: dict[SpotType, int] = {}
     zone: ZoneType | None = None
-    charger = None
+    chargers: list[tuple[float, float]] = []
     for ev in semantic.features:
         d = float(points_polygon_distance(ev.position[None, :], poly)[0])
         if ev.kind is FeatureKind.CHARGER and d <= 1.5:
             local = cand.pose.to_local(ev.position[None, :])[0]
-            if abs(local[1]) > cand.width / 2:
-                continue  # the neighbouring stall's charger
-            charger = (float(ev.position[0]), float(ev.position[1]))
+            if abs(local[1]) > cand.width / 2 + 0.3 or local[0] < -cand.length / 4:
+                continue  # beyond the neighbouring stall, or at the aisle end
+            chargers.append((float(ev.position[0]), float(ev.position[1])))
             type_votes[SpotType.EV_CHARGING] = type_votes.get(SpotType.EV_CHARGING, 0) + ev.count
             continue
         if d <= cfg.zone_radius:
@@ -69,7 +69,9 @@ def classify(
         max(restricted, key=lambda t: restricted[t]) if restricted else SpotType.STANDARD
     )
     cand.zone = zone
-    cand.charger = charger
+    cand.chargers = chargers
+    if cand.charger not in chargers:
+        cand.charger = chargers[0] if chargers else None
     cand.reasons = []
     legal = True
     if zone is not None:

@@ -2,7 +2,7 @@ id: home_garage
 title: Home garage with the charger on one wall
 complaints: [C10, C11]
 description: >
-  A single-car home garage, 3.4 m wide, with the wall charger on the right-hand wall at the
+  A single-car home garage, 3.4 m wide, with the wall charger on the right-hand wall near the
   back. The car must enter the garage without scraping the door frame (mirrors included),
   on the correct side for its rear-left charge port, which means reversing in from the
   forecourt.
@@ -21,6 +21,8 @@ rows:
     stall_length: 6.0
     types: {0: ev_charging}
     chargers: {0: right}
+    # Wall box on the right-hand wall, 0.8 m from the back wall.
+    charger_mounts: {0: [2.2, -1.55]}
 obstacles:
   - {kind: wall, center: [26.2, 11.0], size: [0.3, 3.8], height: 2.5}
   - {kind: wall, center: [23.0, 12.85], size: [6.6, 0.3], height: 2.5}

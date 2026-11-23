@@ -519,9 +519,11 @@ class ParkPilotAutonomy:
         # The final pose gets extra slack: depth noise keeps adding cells to low objects
         # (curbs) as the car closes in, and a goal that is only just free would soon be
         # "blocked" by them.
-        goal_checker = CollisionChecker(
-            self._perc.grid, self.vehicle, checker.margin + self.cfg.goal.goal_slack
-        )
+        # Charger stalls are the exception: the port must reach the charger, so the goal is
+        # placed against the remembered charger/wall with the normal planning margin (the
+        # final approach is a slow creep in the speed profile).
+        slack = 0.0 if cand.charger is not None else self.cfg.goal.goal_slack
+        goal_checker = CollisionChecker(self._perc.grid, self.vehicle, checker.margin + slack)
         goal = compute_goal(
             cand,
             reverse_in=reverse,

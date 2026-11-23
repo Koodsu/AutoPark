@@ -150,19 +150,25 @@ def wants_reverse_in(cand: SpotCandidate, settings: UserSettings, vehicle: Vehic
 
 
 def charge_port_prefers_reverse(cand: SpotCandidate, vehicle: VehicleConfig) -> bool:
-    """Pick nose-in or reverse-in so the charge port ends up closest to the charger."""
+    """Pick the entry direction (and the charger, if several) that puts the charge port
+    closest to a charger. Updates ``cand.charger`` to the chosen one."""
     assert cand.charger is not None
-    charger = np.array(cand.charger)
-    best: tuple[float, bool] | None = None
-    for reverse in (False, True):
-        heading = cand.pose.theta + (math.pi if reverse else 0.0)
-        center = Pose(cand.pose.x, cand.pose.y, heading)
-        rear_axle = center.compose(Pose(-(vehicle.length / 2 - vehicle.rear_overhang), 0.0, 0.0))
-        port = rear_axle.to_world(np.array([[vehicle.charge_port_x, vehicle.charge_port_y]]))[0]
-        d = float(np.hypot(*(port - charger)))
-        if best is None or d < best[0]:
-            best = (d, reverse)
+    options = cand.chargers or [cand.charger]
+    best: tuple[float, bool, tuple[float, float]] | None = None
+    for ch in options:
+        charger = np.array(ch)
+        for reverse in (False, True):
+            heading = cand.pose.theta + (math.pi if reverse else 0.0)
+            center = Pose(cand.pose.x, cand.pose.y, heading)
+            rear_axle = center.compose(
+                Pose(-(vehicle.length / 2 - vehicle.rear_overhang), 0.0, 0.0)
+            )
+            port = rear_axle.to_world(np.array([[vehicle.charge_port_x, vehicle.charge_port_y]]))[0]
+            d = float(np.hypot(*(port - charger)))
+            if best is None or d < best[0]:
+                best = (d, reverse, ch)
     assert best is not None
+    cand.charger = best[2]
     return best[1]
 
 

@@ -12,7 +12,7 @@ import numpy as np
 from pydantic import BaseModel
 
 from parkpilot.behavior.types import DriveState
-from parkpilot.core.config import DirectionPreference, UserSettings
+from parkpilot.core.config import DirectionPreference, Unlock, UserSettings
 from parkpilot.core.geometry import (
     FloatArray,
     Pose,
@@ -314,7 +314,9 @@ def _final_pose_metrics(sim: Simulation, parked: bool) -> dict[str, object]:
         ideal = room.centered_offset()
         limit = max(0.0, (spot.width - cfg.vehicle.mirror_width) / 2 - cfg.goal.line_margin)
         ideal = max(-limit, min(limit, ideal))
-        out["lateral"] = abs(rel.y - ideal)
+        # At a charger the port, not the neighbours, sets the lateral target (C11).
+        charging = spot.charger_id is not None and Unlock.CHARGING in sim.settings.unlocks
+        out["lateral"] = None if charging else abs(rel.y - ideal)
         out["heading"] = math.degrees(abs(math.remainder(rel.theta, math.pi)))
     else:
         out["heading"] = math.degrees(abs(math.remainder(rel.theta, math.pi)))
