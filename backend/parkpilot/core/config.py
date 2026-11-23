@@ -176,10 +176,12 @@ class TrackerConfig(FrozenModel):
     """Speed above which a confirmed track is treated as a moving agent (m/s)."""
     moving_frames: int = 3
     """Consecutive frames above ``dynamic_speed`` needed to call a track moving."""
-    min_travel: float = 1.2
+    min_travel: float = 0.6
     """Net displacement a track needs before it is treated as a moving agent (m)."""
     free_space_frames: int = 2
     """Consecutive frames a mover's hits must land on confidently free cells."""
+    max_innovation: float = 0.25
+    """Movers must be predictable: average residual at most this (m)."""
     free_logodds: float = -1.4
     """Log-odds at or below which a cell counts as confidently free (seen free often)."""
     cue_radius: float = 2.5
@@ -440,6 +442,8 @@ class BehaviorConfig(FrozenModel):
     """Cross-track error that invalidates the current plan (m)."""
     yield_timeout: float = 25.0
     """Yielding longer than this triggers a re-plan around the agent (s)."""
+    blocked_patience: float = 5.0
+    """How long to wait for a blocked aisle to clear before moving down the ladder (s)."""
     pullover_offset: float = 1.2
     """Lateral offset toward the aisle edge for the safe handback stop (m)."""
 

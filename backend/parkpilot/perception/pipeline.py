@@ -54,11 +54,13 @@ class Perception:
     ) -> PerceptionOutput:
         frame = self.rig.sense(t, ego, world, agents, rng)
         pts = frame.hit_points
-        prior_free = self.grid.logodds_at(pts) <= self.cfg.tracker.free_logodds
-        self.tracker.update(t, pts, frame.cues, prior_free)
-        # Every hit goes into the grid, movers included: free-space carving erases the trail
-        # a moving agent leaves, whereas wrongly excluding a static object would erase it.
-        self.grid.update(frame)
+        prior = self.grid.logodds_at(pts)
+        prior_free = prior <= self.cfg.tracker.free_logodds
+        prior_occupied = prior > self.cfg.grid.occupied_threshold
+        moving = self.tracker.update(t, pts, frame.cues, prior_free, prior_occupied)
+        # Every hit goes into the grid, movers included (wrongly excluding a static object
+        # would erase it); movers' cells are marked transient so their trail fades.
+        self.grid.update(frame, transient_hits=moving)
         self.semantic.update(frame)
         return PerceptionOutput(
             t=t,

@@ -1,0 +1,30 @@
+id: repeat_visit
+title: Remember where I like to park here, nose-in
+complaints: [C15]
+description: >
+  The driver prefers nose-in and, on the first visit, overrides the proposed stall (A10, by the
+  door) with A3, under a tree farther away. On the next visit the per-location preference memory
+  should bring the car back to that stall without being told. (The benchmark runs the two
+  visits back to back.)
+location_id: office_park
+bounds: [0, 0, 62, 34]
+entrance: [34, 33]
+ego_start: [3, 17, 0]
+search_route: [[4, 17], [58, 17]]
+memory_protocol: true
+user:
+  direction: nose_in
+rows:
+  - prefix: A
+    first_center: [8, 23.4, 90]
+    count: 17
+    occupied: [0, 1, 2, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16]
+  - prefix: B
+    first_center: [52.8, 10.6, -90]
+    count: 17
+    occupied: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+scripted:
+  - {t: 5.0, command: override_near, position: [16.4, 23.4]}
+obstacles:
+  - {kind: curb, center: [30.4, 26.3], size: [48.4, 0.2], height: 0.15}
+  - {kind: curb, center: [30.4, 7.7], size: [48.4, 0.2], height: 0.15}

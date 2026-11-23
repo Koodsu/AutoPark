@@ -127,6 +127,7 @@ class ParkPilotAutonomy:
         self._route_s = 0.0
         self._start_pose: Pose | None = None
         self._last_emergency = False
+        self._blocked_since: float | None = None
 
     # ------------------------------------------------------------------ public API
     @property
@@ -152,6 +153,8 @@ class ParkPilotAutonomy:
             msg = "that spot is occupied"
         elif not target.candidate.legal:
             msg = "cannot park there: " + "; ".join(target.candidate.reasons[:1])
+        elif target.candidate.observed_fraction < 0.35:
+            msg = f"spot {cmd.spot_id} has not been seen well enough yet"
         else:
             self._override = cmd.spot_id
             self._failures.pop(cmd.spot_id, None)
@@ -347,6 +350,13 @@ class ParkPilotAutonomy:
         control, done = self._drive(state, dt, decision)
         stopped = abs(state.speed) < self.cfg.behavior.stop_speed
         blocked = decision.blocked_at is not None and decision.blocked_at < 1.0
+        if blocked and stopped:
+            if self._blocked_since is None:
+                self._blocked_since = self._t
+            self.telemetry.reason = "waiting: something is blocking the aisle"
+            blocked = self._t - self._blocked_since >= self.cfg.behavior.blocked_patience
+        else:
+            self._blocked_since = None
         if stopped and (done or blocked):
             why = (
                 "search route blocked"
@@ -403,9 +413,18 @@ class ParkPilotAutonomy:
         decision = self._safety(state)
         if decision.yield_kind is not None:
             return self._enter_yield(state, dt, decision)
-        if decision.blocked_at is not None and decision.blocked_at < 1.0:
-            self._handback("route back is blocked", state)
-            return self.driver.hold(state, dt)
+        if (
+            decision.blocked_at is not None
+            and decision.blocked_at < 1.0
+            and abs(state.speed) < 0.05
+        ):
+            if self._blocked_since is None:
+                self._blocked_since = self._t
+            if self._t - self._blocked_since >= self.cfg.behavior.blocked_patience:
+                self._handback("route back is blocked", state)
+                return self.driver.hold(state, dt)
+        else:
+            self._blocked_since = None
         control, done = self._drive(state, dt, decision)
         if done and abs(state.speed) < self.cfg.behavior.stop_speed:
             self._set_route_path(state)

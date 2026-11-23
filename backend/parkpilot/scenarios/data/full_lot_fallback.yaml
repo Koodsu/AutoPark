@@ -1,0 +1,27 @@
+id: full_lot_fallback
+title: Full lot except a restricted stall
+complaints: [C14, C5]
+description: >
+  Every legal stall is taken; only an accessible stall is free and the user has no placard.
+  ParkPilot does not freeze in the aisle: it circles the aisle once, then pulls over to the
+  aisle edge, stops and hands back control with a stated reason.
+location_id: stadium_lot
+bounds: [0, 0, 56, 34]
+entrance: [28, 33]
+ego_start: [3, 17, 0]
+search_route: [[4, 17], [50, 17]]
+expect_handback: true
+max_time: 120
+rows:
+  - prefix: A
+    first_center: [8, 23.4, 90]
+    count: 15
+    types: {7: accessible}
+    occupied: [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14]
+  - prefix: B
+    first_center: [47.2, 10.6, -90]
+    count: 15
+    occupied: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+obstacles:
+  - {kind: curb, center: [27.6, 26.3], size: [42.0, 0.2], height: 0.15}
+  - {kind: curb, center: [27.6, 7.7], size: [42.0, 0.2], height: 0.15}

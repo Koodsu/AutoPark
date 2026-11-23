@@ -1,0 +1,32 @@
+id: home_garage
+title: Home garage with the charger on one wall
+complaints: [C10, C11]
+description: >
+  A single-car home garage, 3.4 m wide, with the wall charger on the right-hand wall at the
+  back. The car must enter the garage without scraping the door frame (mirrors included),
+  on the correct side for its rear-left charge port, which means reversing in from the
+  forecourt.
+location_id: home
+bounds: [0, 0, 28, 22]
+entrance: [26, 14]
+user:
+  unlocks: [charging]
+ego_start: [3, 11, 0]
+search_route: [[4, 11], [13, 11]]
+rows:
+  - prefix: H
+    first_center: [23.0, 11.0, 0]
+    count: 1
+    stall_width: 3.2
+    stall_length: 6.0
+    types: {0: ev_charging}
+    chargers: {0: right}
+obstacles:
+  - {kind: wall, center: [26.2, 11.0], size: [0.3, 3.8], height: 2.5}
+  - {kind: wall, center: [23.0, 12.85], size: [6.6, 0.3], height: 2.5}
+  - {kind: wall, center: [23.0, 9.15], size: [6.6, 0.3], height: 2.5}
+  - {kind: wall, center: [19.85, 17.4], size: [0.3, 9.0], height: 2.5}
+  - {kind: wall, center: [19.85, 4.6], size: [0.3, 9.0], height: 2.5}
+notes: >
+  The garage interior is 3.4 m wide (wall faces at y=9.3 and 12.7) and 6.2 m deep; painted
+  floor lines mark the parking area. The forecourt is 20 m by 22 m, enough to swing round.

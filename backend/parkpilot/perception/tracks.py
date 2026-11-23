@@ -31,6 +31,10 @@ class Track:
     age: int = 1
     reverse_lights: bool = False
     moving_frames: int = 0
+    innovation: float = 1.0
+    """Running average of the prediction residual (m): small for real movers, large for
+    flickering clutter that jumps around (shadows, puddles)."""
+    latched_dynamic: bool = False
     free_space_frames: int = 0
     """Recent frames in which most hits landed on cells the grid had confidently seen
     free: something moved *into* free space. Static objects revealed by parallax land on
@@ -61,11 +65,18 @@ class Track:
         """
         if not self.confirmed(cfg):
             return False
+        if self.latched_dynamic:
+            return True
         moving = (
             self.moving_frames >= cfg.moving_frames
             and self.displacement >= cfg.min_travel
             and self.free_space_frames >= cfg.free_space_frames
+            and self.innovation <= cfg.max_innovation
         )
+        if moving:
+            # Once a track has proven it moves, it stays a mover: a pedestrian who pauses
+            # in front of the car is still a pedestrian.
+            self.latched_dynamic = True
         return moving or self.reverse_lights
 
     def both_ends_moved(self, distance: float) -> bool:
@@ -133,6 +144,7 @@ class Tracker:
         points: FloatArray,
         cues: list[CueObservation],
         prior_free: NDArray[np.bool_] | None = None,
+        prior_occupied: NDArray[np.bool_] | None = None,
     ) -> NDArray[np.bool_]:
         """Update tracks from this frame's hit points.
 
@@ -171,6 +183,7 @@ class Tracker:
             tr = self.tracks[ti]
             idx, centroid, extent = clusters[ci]
             residual = centroid - predicted[ti]
+            tr.innovation = 0.7 * tr.innovation + 0.3 * float(np.hypot(*residual))
             tr.position = predicted[ti] + cfg.alpha * residual
             tr.velocity = tr.velocity + (cfg.beta / dt) * residual
             tr.extent, tr.points = extent, points[idx]
@@ -179,7 +192,9 @@ class Tracker:
             tr.age += 1
             tr.moving_frames = tr.moving_frames + 1 if tr.speed > cfg.dynamic_speed else 0
             into_free = prior_free is not None and float(prior_free[idx].mean()) >= 0.5
-            tr.free_space_frames = tr.free_space_frames + 1 if into_free else 0
+            if prior_occupied is not None and float(prior_occupied[idx].mean()) > 0.2:
+                into_free = False  # landing on remembered structure: a static outline
+            tr.free_space_frames = tr.free_space_frames + 1 if into_free else tr.free_space_frames
             if tr.is_dynamic(cfg):
                 moving_mask[idx] = True
         for ti, tr in enumerate(self.tracks):

@@ -38,6 +38,9 @@ class OccupancyGrid:
         self.ny = math.ceil((bounds[3] - bounds[1] + 2 * m) / self.res)
         self.logodds = np.zeros((self.ny, self.nx), dtype=np.float32)
         self.observed = np.zeros((self.ny, self.nx), dtype=bool)
+        self.transient = np.zeros((self.ny, self.nx), dtype=bool)
+        self.tall = np.zeros((self.ny, self.nx), dtype=bool)
+        """Cells hit from inside the low-object blind zone, hence by something tall."""
         self.version = 0
         self._last_t: float | None = None
         self._dist_cache: tuple[int, float, FloatArray] | None = None
@@ -64,8 +67,14 @@ class OccupancyGrid:
         dy = np.maximum(np.abs(local[..., 1]) - self.vehicle.width / 2, 0.0)
         return np.asarray(np.hypot(dx, dy))
 
-    def update(self, frame: SensorFrame, ignore_hits: NDArray[np.bool_] | None = None) -> None:
-        """Fuse one sensor frame. ``ignore_hits`` masks hits not to insert (moving tracks)."""
+    def update(self, frame: SensorFrame, transient_hits: NDArray[np.bool_] | None = None) -> None:
+        """Fuse one sensor frame.
+
+        ``transient_hits`` flags hits on confirmed *moving* agents. They are inserted like
+        any other hit (safety first) but their cells are marked transient: free space may
+        clear them even inside the blind zone, so a pedestrian who walked past the bumper
+        does not leave a permanent ghost behind.
+        """
         c = self.cfg
         if not c.memory:
             self.logodds[:] = 0.0
@@ -85,20 +94,38 @@ class OccupancyGrid:
             valid = s[None, :] < free_len[:, None]
             # Only samples near the body can fall in the blind zone; skip the rest.
             near = int(min(n_steps, math.ceil((self.low_blind_range + 3.5) / step)))
-            valid[:, :near] &= self._body_distance(frame.ego, pts[:, :near]) >= self.low_blind_range
-            rows, cols = self.to_cells(pts[valid])
+            blind = np.zeros_like(valid)
+            blind[:, :near] = self._body_distance(frame.ego, pts[:, :near]) < self.low_blind_range
+            rows, cols = self.to_cells(pts[valid & ~blind])
             ok = self.in_bounds(rows, cols)
             free_mask = np.zeros_like(self.observed)
             free_mask[rows[ok], cols[ok]] = True
+            # Inside the blind zone, free space only erases cells known to hold *tall* things
+            # (a tall object there would have been seen) or moving agents' trails.
+            rows, cols = self.to_cells(pts[valid & blind])
+            ok = self.in_bounds(rows, cols)
+            blind_mask = np.zeros_like(self.observed)
+            blind_mask[rows[ok], cols[ok]] = True
+            free_mask |= blind_mask & (self.transient | self.tall)
         else:
             free_mask = np.zeros_like(self.observed)
         hit_pts = frame.hit_points
-        if ignore_hits is not None and len(hit_pts):
-            hit_pts = hit_pts[~ignore_hits]
         rows, cols = self.to_cells(hit_pts)
         ok = self.in_bounds(rows, cols)
         hit_mask = np.zeros_like(self.observed)
         hit_mask[rows[ok], cols[ok]] = True
+        if len(hit_pts):
+            # Only tall objects are reported inside the low-object blind zone.
+            near_body = self._body_distance(frame.ego, hit_pts) < self.low_blind_range
+            if near_body.any():
+                nr, nc = self.to_cells(hit_pts[near_body])
+                nok = self.in_bounds(nr, nc)
+                self.tall[nr[nok], nc[nok]] = True
+        if transient_hits is not None and transient_hits.any():
+            tr, tc = self.to_cells(hit_pts[transient_hits])
+            tok = self.in_bounds(tr, tc)
+            self.transient[tr[tok], tc[tok]] = True
+        self.transient &= self.logodds > -0.5  # forget the flag once seen free again
         free_mask &= ~hit_mask
         self.logodds[free_mask] += c.l_free
         self.logodds[hit_mask] += c.l_occ

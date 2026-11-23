@@ -1,0 +1,38 @@
+id: dynamic_agents
+title: Pedestrians, a cart and a car backing out
+complaints: [C12]
+description: >
+  A busy lot: two pedestrians cross the aisle, a shopping cart is pushed along it, and a
+  car backs out of a stall ahead with its reverse lights on. ParkPilot yields with a stated
+  reason, predicts the backing car from its intent cue, and resumes as soon as the path is
+  clear.
+location_id: mall_lot
+bounds: [0, 0, 62, 34]
+entrance: [44, 33]
+ego_start: [3, 17, 0]
+search_route: [[4, 17], [58, 17]]
+rows:
+  - prefix: A
+    first_center: [8, 23.4, 90]
+    count: 17
+    occupied: [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 15, 16]
+  - prefix: B
+    first_center: [52.8, 10.6, -90]
+    count: 17
+    occupied: [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16]
+agents:
+  - {id: ped1, kind: pedestrian, waypoints: [[17, 21.5], [17, 12.5]], speed: 1.3, trigger_distance: 10}
+  - {id: ped2, kind: pedestrian, waypoints: [[34, 12.5], [34, 21.5]], speed: 1.1, trigger_distance: 10}
+  - {id: cart, kind: cart, waypoints: [[44, 19.6], [26, 19.6]], speed: 0.9, start_time: 6}
+  - id: backing
+    kind: car
+    waypoints: [[27.6, 10.6], [27.6, 15.8], [61, 15.8]]
+    speed: 1.0
+    reversing: true
+    trigger_distance: 12
+obstacles:
+  - {kind: curb, center: [30.4, 26.3], size: [48.4, 0.2], height: 0.15}
+  - {kind: curb, center: [30.4, 7.7], size: [48.4, 0.2], height: 0.15}
+notes: >
+  The backing car occupies stall B9 until the ego is within 12 m, then backs into the aisle
+  and drives off ahead of the ego along the aisle.

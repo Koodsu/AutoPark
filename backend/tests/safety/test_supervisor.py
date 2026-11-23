@@ -63,6 +63,7 @@ def _track(
     )
     t.moving_frames = 5
     t.free_space_frames = 5
+    t.innovation = 0.1
     t.origin = np.array(pos) - np.array(vel) * 3
     for k, v in kw.items():
         setattr(t, k, v)

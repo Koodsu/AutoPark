@@ -135,6 +135,9 @@ class Scenario(_Model):
     scripted: list[ScriptedCommand] = Field(default_factory=list)
     user: UserSettings = UserSettings()
     max_time: float = 120.0
+    memory_protocol: bool = False
+    """Benchmark runs two visits: the first records the scripted override as a favorite,
+    the second (without scripts) should return to it (C15)."""
     expect_handback: bool = False
     """True when the correct outcome is a safe handback (e.g. a full lot)."""
     notes: str = ""

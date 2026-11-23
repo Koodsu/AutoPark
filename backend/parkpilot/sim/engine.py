@@ -121,9 +121,17 @@ class Simulation:
             px, py = sc.position
             cands = self.autonomy.telemetry.candidates
             if not cands:
-                continue
+                self._scripted.insert(0, sc)
+                return
             best = min(cands, key=lambda c: (c.pose.x - px) ** 2 + (c.pose.y - py) ** 2)
-            self.command(OverrideSpot(best.id))
+            if (best.pose.x - px) ** 2 + (best.pose.y - py) ** 2 > 2.0**2:
+                # The driver taps a spot only once the car has seen it: retry next tick.
+                self._scripted.insert(0, sc)
+                return
+            msg = self.command(OverrideSpot(best.id))
+            if not msg.startswith("rerouting") and self.t < sc.t + 15.0:
+                self._scripted.insert(0, sc)  # not seen well enough yet: tap again later
+                return
 
     # ------------------------------------------------------------------ stepping
     def step(self) -> None:
@@ -174,15 +182,24 @@ class Simulation:
         if not agents:
             return float("inf")
         v = self.state.speed
+        acc = self.state.accel
+        braking = v * acc < 0
         best = float("inf")
         for k in range(0, 31):
             tt = k * 0.1
-            pose = self.state.pose.advanced(v * tt)
+            # Constant-acceleration prediction: a car that is already braking stops.
+            if braking:
+                t_stop = abs(v / acc)
+                te = min(tt, t_stop)
+                travel = v * te + 0.5 * acc * te * te
+            else:
+                travel = v * tt
+            pose = self.state.pose.advanced(travel)
             foot = self.vehicle.footprint(pose)
-            for a in agents:
-                vel = a.velocity
-                ap = Pose(a.pose.x + vel[0] * tt, a.pose.y + vel[1] * tt, a.pose.theta)
-                poly = rect_polygon(ap, a.length, a.width)
+            for ag in agents:
+                vel = ag.velocity
+                ap = Pose(ag.pose.x + vel[0] * tt, ag.pose.y + vel[1] * tt, ag.pose.theta)
+                poly = rect_polygon(ap, ag.length, ag.width)
                 if any(polygons_intersect(f, poly) for f in foot):
                     return tt
         return best

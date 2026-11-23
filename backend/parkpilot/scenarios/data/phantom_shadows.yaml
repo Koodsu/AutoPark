@@ -1,0 +1,38 @@
+id: phantom_shadows
+title: Shadows and puddles, plus one real pedestrian
+complaints: [C8]
+description: >
+  Tree shadows and puddles along the aisle produce flickering false detections. A real
+  pedestrian later steps out between parked cars. Without a persistence filter every
+  flicker is a hard brake; ParkPilot ignores unconfirmed detections but still stops for
+  the confirmed, approaching pedestrian (missed hazards must be zero).
+location_id: park_lot
+bounds: [0, 0, 62, 34]
+entrance: [46, 33]
+ego_start: [3, 17, 0]
+search_route: [[4, 17], [58, 17]]
+rows:
+  - prefix: A
+    first_center: [8, 23.4, 90]
+    count: 17
+    occupied: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16]
+  - prefix: B
+    first_center: [52.8, 10.6, -90]
+    count: 17
+    occupied: [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16]
+phantoms:
+  - {position: [14, 17.5], radius: 1.0, rate: 0.5}
+  - {position: [22, 16.5], radius: 1.0, rate: 0.5}
+  - {position: [29, 17.2], radius: 0.8, rate: 0.5}
+  - {position: [36, 16.8], radius: 1.0, rate: 0.5}
+agents:
+  - id: pedestrian
+    kind: pedestrian
+    waypoints: [[30.4, 21.0], [30.4, 12.0]]
+    speed: 1.4
+    trigger_distance: 15
+obstacles:
+  - {kind: curb, center: [30.4, 26.3], size: [48.4, 0.2], height: 0.15}
+  - {kind: curb, center: [30.4, 7.7], size: [48.4, 0.2], height: 0.15}
+notes: >
+  The pedestrian walks out of the gap between A8 and A9 when the ego is 15 m away.

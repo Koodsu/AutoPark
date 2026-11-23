@@ -128,8 +128,13 @@ class Driver:
         return StepResult(out, cmd, False, False)
 
     def hold(self, state: VehicleState, dt: float) -> ControlOutput:
-        """Brake to a stop in the current direction of travel and hold."""
+        """Brake smoothly (jerk-limited) to a stop in the current direction and hold."""
         gear = 1 if state.speed >= 0 else -1
         speed = abs(state.speed)
-        a = -min(speed / dt, self.vehicle.config.max_decel)
+        if speed < 0.05:
+            return ControlOutput(gear * -speed / dt, state.steer, gear)
+        want = -min(speed / dt, self.vehicle.config.max_decel)
+        current = gear * state.accel  # magnitude-signed: negative while slowing down
+        a = max(want, current - self.speed_cfg.jerk * dt)
+        a = min(a, 0.0)
         return ControlOutput(gear * a, state.steer, gear)

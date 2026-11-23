@@ -1,0 +1,25 @@
+id: override_spot
+title: The driver picks a different spot on the screen
+complaints: [C13]
+description: >
+  ParkPilot proposes the best-ranked stall (A7, nearest the door); the driver taps the free
+  stall across the aisle (B9) on the HMI. The car acknowledges, re-plans and parks in the driver's choice.
+location_id: library_lot
+bounds: [0, 0, 62, 34]
+entrance: [30, 33]
+ego_start: [3, 17, 0]
+search_route: [[4, 17], [58, 17]]
+rows:
+  - prefix: A
+    first_center: [8, 23.4, 90]
+    count: 17
+    occupied: [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+  - prefix: B
+    first_center: [52.8, 10.6, -90]
+    count: 17
+    occupied: [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16]
+scripted:
+  - {t: 8.0, command: override_near, position: [27.6, 10.6]}
+obstacles:
+  - {kind: curb, center: [30.4, 26.3], size: [48.4, 0.2], height: 0.15}
+  - {kind: curb, center: [30.4, 7.7], size: [48.4, 0.2], height: 0.15}

@@ -1,0 +1,30 @@
+id: night_bollards
+title: Low bollards and a snow pile in an unlit lot
+complaints: [C7]
+description: >
+  An unlit lot at night (lighting 0). Low bollards stand at the aisle edge near the only
+  free stall and a low snow pile sits in front of a neighbor. Cameras lose them inside the
+  near-field blind zone; ParkPilot remembers them in its occupancy grid and widens its
+  margins for the noisier night-time depth.
+location_id: clinic_night
+bounds: [0, 0, 60, 34]
+entrance: [40, 33]
+lighting: 0.0
+ego_start: [3, 17, 0]
+search_route: [[4, 17], [54, 17]]
+rows:
+  - prefix: A
+    first_center: [8, 23.4, 90]
+    count: 17
+    occupied: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16]
+  - prefix: B
+    first_center: [52.8, 10.6, -90]
+    count: 17
+    occupied: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+obstacles:
+  - {kind: bollard, center: [37.4, 19.9], radius: 0.15, height: 0.9}
+  - {kind: bollard, center: [39.0, 19.9], radius: 0.15, height: 0.9}
+  - {kind: snow_pile, center: [47.2, 20.0], size: [1.2, 0.8], height: 0.4}
+  - {kind: bollard, center: [46.0, 13.8], radius: 0.15, height: 0.9}
+  - {kind: curb, center: [30.4, 26.3], size: [48.4, 0.2], height: 0.15}
+  - {kind: curb, center: [30.4, 7.7], size: [48.4, 0.2], height: 0.15}

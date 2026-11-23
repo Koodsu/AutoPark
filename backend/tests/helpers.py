@@ -12,6 +12,8 @@ from parkpilot.scenarios.schema import Scenario, build_world
 from parkpilot.spots.detect import SpotCandidate, SpotDetector
 from parkpilot.world.model import World
 
+_CACHE: dict[tuple[str, int, float, bool], object] = {}
+
 
 def survey(
     scenario_id: str,
@@ -21,7 +23,14 @@ def survey(
     config: ParkPilotConfig | None = None,
     use_gaps: bool = True,
 ) -> tuple[Scenario, World, PerceptionOutput, list[SpotCandidate], SpotDetector]:
-    """Drive straight along the first search-route leg with perception and spot detection."""
+    """Drive straight along the first search-route leg with perception and spot detection.
+
+    Results for the default config are cached per process (tests only read them, apart
+    from re-classifying candidates, which overwrites every classification field).
+    """
+    key = (scenario_id, seed, step, use_gaps)
+    if config is None and key in _CACHE:
+        return _CACHE[key]  # type: ignore[return-value]
     sc = load_scenario(scenario_id)
     world = build_world(sc)
     cfg = config or ParkPilotConfig()
@@ -37,4 +46,7 @@ def survey(
             cands = detector.detect(out, use_gaps=use_gaps)
     assert out is not None
     cands = detector.detect(out, use_gaps=use_gaps)
-    return sc, world, out, cands, detector
+    result = (sc, world, out, cands, detector)
+    if config is None:
+        _CACHE[key] = result
+    return result

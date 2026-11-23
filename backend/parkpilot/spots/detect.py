@@ -181,10 +181,13 @@ class SpotDetector:
             cands.extend(self._lined(perc))
         if use_gaps:
             gaps = self._gaps(perc)
-            # Painted stalls take precedence where both detectors fire.
+            # Painted stalls take precedence where both detectors fire; a line-less guess is
+            # forgotten once painted lines explain the same place.
             for g in gaps:
                 if all(g.pose.distance_to(c.pose) > 1.5 for c in cands):
                     cands.append(g)
+                else:
+                    self._gap_registry.pop(g.id, None)
         for c in cands:
             self._assess(c, perc)
         return cands
