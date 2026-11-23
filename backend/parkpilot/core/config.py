@@ -335,6 +335,31 @@ class SpeedConfig(FrozenModel):
     """If set, ignore clearance and drive at this speed (the baseline's crawl)."""
 
 
+class ControlConfig(FrozenModel):
+    """Path tracking and longitudinal control."""
+
+    lookahead_base: float = 1.0
+    """Pure-pursuit lookahead at standstill (m)."""
+    lookahead_gain: float = 0.5
+    """Additional lookahead per m/s of speed (s)."""
+    stanley_gain: float = 2.5
+    """Cross-track gain of the reverse Stanley controller."""
+    stanley_softening: float = 0.4
+    """Speed softening term of the Stanley controller (m/s)."""
+    heading_gain: float = 2.0
+    """Heading-error gain of the reverse controller."""
+    steer_preview: float = 0.5
+    """Curvature feedforward preview time, covering steering actuator lag (s)."""
+    speed_gain: float = 1.8
+    """Proportional gain from speed error to acceleration (1/s)."""
+    stop_tolerance: float = 0.06
+    """Distance to the segment end at which the car is considered there (m)."""
+    search_window: int = 40
+    """Path indices searched ahead of the last nearest index."""
+    max_tracking_error: float = 0.5
+    """Cross-track error beyond which the behavior layer requests a re-plan (m)."""
+
+
 class DirectionPreference(StrEnum):
     """How the user likes to end up in a perpendicular stall (C15)."""
 
@@ -397,3 +422,4 @@ class ParkPilotConfig(FrozenModel):
     planner: PlannerConfig = PlannerConfig()
     goal: GoalConfig = GoalConfig()
     speed: SpeedConfig = SpeedConfig()
+    control: ControlConfig = ControlConfig()
