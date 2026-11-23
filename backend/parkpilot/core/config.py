@@ -425,9 +425,12 @@ class BehaviorConfig(FrozenModel):
     entrance_coverage: float = 10.0
     """Search continues until the car has passed the route point nearest the entrance by
     this much, unless a near-optimal spot is already known (m)."""
-    near_optimal_walk: float = 6.0
+    near_optimal_walk: float = 3.0
     """A spot within this walking distance of the best possible on the route ends the
     search early (m)."""
+    stall_reach: float = 6.5
+    """How much closer to the entrance than the route a stall can be: stalls lie up to a
+    stall depth plus half an aisle off the route (m). Bounds the walk of unseen stalls."""
     max_spot_failures: int = 1
     """Plan failures tolerated per spot before it is skipped (fallback ladder step 1)."""
     max_circles: int = 1

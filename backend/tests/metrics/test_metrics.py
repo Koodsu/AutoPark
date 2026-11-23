@@ -53,3 +53,15 @@ def test_report_generation(tmp_path: Path) -> None:
     assert (tmp_path / "docs" / "img" / "bench_gear_changes.png").is_file()
     rows = dict((label, (b, p)) for label, b, p in headline_rows(results))
     assert rows["Collisions (total)"][1] == "0"
+
+
+def test_open_lot_picks_the_oracle_spot_at_the_row_end() -> None:
+    # Regression: the search used to stop at the first "near-optimal" stall before the
+    # roomier, closer stall at the row end (A23) had been seen.
+    m = run_one("open_lot_speed", "parkpilot", 0)
+    assert m.parked_spot == "A23" and m.oracle_match is True
+
+
+def test_override_scenario_has_no_oracle() -> None:
+    m = run_one("override_spot", "parkpilot", 0)
+    assert m.oracle_match is None and m.override_honored is True

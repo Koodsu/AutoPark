@@ -328,7 +328,8 @@ class ParkPilotAutonomy:
             # Near-optimal: the whole cost (not just walking) is within reach of the best
             # walking distance achievable anywhere along the route.
             bound = self.settings.weights.walking * (
-                self._min_route_walk + self.cfg.behavior.near_optimal_walk
+                max(0.0, self._min_route_walk - self.cfg.behavior.stall_reach)
+                + self.cfg.behavior.near_optimal_walk
             )
             near_opt = best.cost - best.terms.get("drive", 0.0) <= bound
             if Unlock.CHARGING in self.settings.unlocks and best.candidate.charger is None:

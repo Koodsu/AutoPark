@@ -54,6 +54,8 @@ class RunLog:
     hazard_frames: list[tuple[float, float, float]] = field(default_factory=list)
     """(t, ego speed, ground-truth time-to-contact with the nearest agent ahead)."""
     hard_brake_times: list[float] = field(default_factory=list)
+    car_agents: list[tuple[float, list[tuple[float, float]]]] = field(default_factory=list)
+    """(t, positions of active car agents) per perception frame (metrics only)."""
     overrides: list[tuple[float, str]] = field(default_factory=list)
 
 
@@ -176,6 +178,9 @@ class Simulation:
         if perc.frame.truth_phantom.any():
             self.log.phantom_frames.append(self.t)
         self.log.hazard_frames.append((self.t, self.state.speed, self._truth_ttc(agents)))
+        self.log.car_agents.append(
+            (self.t, [(a.pose.x, a.pose.y) for a in agents if a.spec.kind == "car"])
+        )
 
     def _truth_ttc(self, agents: list[AgentState]) -> float:
         """Ground-truth time to contact with an agent along the ego's current motion."""

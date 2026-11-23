@@ -118,12 +118,18 @@ def oracle_best_spot(
     world = sim.world
     cfg = sim.config
     occupied = world.occupied_spot_ids()
-    agent_spots = set()
-    for a in sim.agents.agents:
-        x, y = a.spec.waypoints[0]
-        for s in world.spots:
-            if s.pose.distance_to(Pose(x, y, 0.0)) < 1.0 and a.spec.kind == "car":
-                agent_spots.add(s.id)
+    # Availability is judged when the system first committed to a spot (or at the start):
+    # a stall vacated by a car before that moment is a fair choice.
+    commit_t = next(
+        (tr.t for tr in sim.autonomy.telemetry.transitions if tr.dst is DriveState.APPROACH),
+        0.0,
+    )
+    cars: list[tuple[float, float]] = []
+    if sim.log.car_agents:
+        _, cars = min(sim.log.car_agents, key=lambda f: abs(f[0] - commit_t))
+    agent_spots = {
+        s.id for s in world.spots for x, y in cars if s.pose.distance_to(Pose(x, y, 0.0)) < 2.0
+    }
     pts = _obstacle_points(world)
     start = sim.scenario.start_pose()
     best: tuple[float, str] | None = None
@@ -202,7 +208,8 @@ def compute_metrics(
         if isinstance(spot, Spot) and spot.layout is SpotLayout.PERPENDICULAR and tel.parked_pose:
             nose_in = abs(angle_diff(tel.parked_pose.theta, spot.pose.theta)) < math.pi / 2
             honored = nose_in == (settings.direction is DirectionPreference.NOSE_IN)
-    oracle = oracle_best_spot(sim, settings, remembered)
+    # When the driver picks the spot (scripted override), the system is not choosing.
+    oracle = None if sim.scenario.scripted else oracle_best_spot(sim, settings, remembered)
     spot_obj = final["spot"]
     oracle_match = (
         (spot_obj.id == oracle)
