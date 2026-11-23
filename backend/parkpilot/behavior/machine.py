@@ -128,6 +128,8 @@ class ParkPilotAutonomy:
         self._start_pose: Pose | None = None
         self._last_emergency = False
         self._blocked_since: float | None = None
+        self._traffic_since: float | None = None
+        self._last_traffic_try = -math.inf
 
     # ------------------------------------------------------------------ public API
     @property
@@ -436,6 +438,23 @@ class ParkPilotAutonomy:
             # Come to a smooth stop on the current path before planning the maneuver.
             res = self.driver.step(state, dt, 0.0, False) if self.driver.active else None
             return res.control if res is not None else self.driver.hold(state, dt)
+        if self._traffic_nearby(state.pose):
+            # Moving traffic close by may be what blocks the maneuver: wait for it rather
+            # than burning spots on the fallback ladder.
+            if self._traffic_since is None:
+                self._traffic_since = self._t
+            waited = self._t - self._traffic_since
+            if waited < self.cfg.behavior.blocked_patience * 2:
+                best = self._best()
+                if best is not None and self._t - self._last_traffic_try >= 1.0:
+                    self._last_traffic_try = self._t
+                    path, goal, _ = self._plan_to(best.candidate, state.pose)
+                    if path is not None and goal is not None and self._try_commit(best, state):
+                        self._traffic_since = None
+                        return self.driver.hold(state, dt)
+                self.telemetry.reason = "waiting for traffic to clear before maneuvering"
+                return self.driver.hold(state, dt)
+        self._traffic_since = None
         for _ in range(8):
             best = self._best()
             if best is None:
@@ -447,6 +466,16 @@ class ParkPilotAutonomy:
                 self.telemetry.override_ack = f"cannot reach spot {best.candidate.id}"
                 self._override = None
         return self.driver.hold(state, dt)
+
+    def _traffic_nearby(self, pose: Pose, radius: float = 12.0) -> bool:
+        """A confirmed moving agent within ``radius`` of the ego."""
+        if self._perc is None:
+            return False
+        return any(
+            tr.is_dynamic(self.cfg.tracker)
+            and math.hypot(tr.position[0] - pose.x, tr.position[1] - pose.y) < radius
+            for tr in self._perc.confirmed
+        )
 
     def _try_commit(self, best: RankedSpot, state: VehicleState) -> bool:
         cand = best.candidate

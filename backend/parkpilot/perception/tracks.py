@@ -73,7 +73,7 @@ class Track:
             and self.free_space_frames >= cfg.free_space_frames
             and self.innovation <= cfg.max_innovation
         )
-        if moving:
+        if moving or self.reverse_lights:
             # Once a track has proven it moves, it stays a mover: a pedestrian who pauses
             # in front of the car is still a pedestrian.
             self.latched_dynamic = True

@@ -40,6 +40,9 @@ class OccupancyGrid:
         self.observed = np.zeros((self.ny, self.nx), dtype=bool)
         self.transient = np.zeros((self.ny, self.nx), dtype=bool)
         self.tall = np.zeros((self.ny, self.nx), dtype=bool)
+        self.low = np.zeros((self.ny, self.nx), dtype=bool)
+        """Cells that ever returned a near-ground point (curbs, bollards): never cleared
+        from inside the blind zone."""
         """Cells hit from inside the low-object blind zone, hence by something tall."""
         self.version = 0
         self._last_t: float | None = None
@@ -101,12 +104,13 @@ class OccupancyGrid:
             free_mask = np.zeros_like(self.observed)
             free_mask[rows[ok], cols[ok]] = True
             # Inside the blind zone, free space only erases cells known to hold *tall* things
-            # (a tall object there would have been seen) or moving agents' trails.
+            # (a tall object there would have been seen) or moving agents' trails; cells
+            # that ever held a low object stay remembered (object permanence).
             rows, cols = self.to_cells(pts[valid & blind])
             ok = self.in_bounds(rows, cols)
             blind_mask = np.zeros_like(self.observed)
             blind_mask[rows[ok], cols[ok]] = True
-            free_mask |= blind_mask & (self.transient | self.tall)
+            free_mask |= blind_mask & (self.transient | self.tall) & ~self.low
         else:
             free_mask = np.zeros_like(self.observed)
         hit_pts = frame.hit_points
@@ -114,6 +118,16 @@ class OccupancyGrid:
         ok = self.in_bounds(rows, cols)
         hit_mask = np.zeros_like(self.observed)
         hit_mask[rows[ok], cols[ok]] = True
+        if len(hit_pts) and len(frame.hit_low) == len(frame.hits) and frame.hit_low.any():
+            lr, lc = self.to_cells(hit_pts[frame.hit_low[frame.hits]])
+            lok = self.in_bounds(lr, lc)
+            self.low[lr[lok], lc[lok]] = True
+        if len(hit_pts) and len(frame.hit_low) == len(frame.hits):
+            # Points measured well above the ground mark cells as holding something tall.
+            tall_pts = hit_pts[~frame.hit_low[frame.hits]]
+            tr_, tc_ = self.to_cells(tall_pts)
+            tok = self.in_bounds(tr_, tc_)
+            self.tall[tr_[tok], tc_[tok]] = True
         if len(hit_pts):
             # Only tall objects are reported inside the low-object blind zone.
             near_body = self._body_distance(frame.ego, hit_pts) < self.low_blind_range
@@ -129,9 +143,26 @@ class OccupancyGrid:
         free_mask &= ~hit_mask
         self.logodds[free_mask] += c.l_free
         self.logodds[hit_mask] += c.l_occ
+        # The space the car body occupies right now is free by definition: clear any
+        # ghosts there (e.g. the trail of an agent the car has since followed).
+        self._clear_body(frame.ego)
         np.clip(self.logodds, c.l_min, c.l_max, out=self.logodds)
         self.observed |= free_mask | hit_mask
         self.version += 1
+
+    def _clear_body(self, ego: Pose) -> None:
+        v = self.vehicle
+        r = math.hypot(v.length, v.width)
+        lo = self.to_cells(np.array([ego.x - r, ego.y - r]))
+        hi = self.to_cells(np.array([ego.x + r, ego.y + r]))
+        r0, c0 = max(int(lo[0]), 0), max(int(lo[1]), 0)
+        r1, c1 = min(int(hi[0]) + 1, self.ny), min(int(hi[1]) + 1, self.nx)
+        if r1 <= r0 or c1 <= c0:
+            return
+        rr, cc = np.mgrid[r0:r1, c0:c1]
+        centers = self.cell_centers(rr.ravel(), cc.ravel())
+        inside = self._body_distance(ego, centers) <= 0.0
+        self.logodds[rr.ravel()[inside], cc.ravel()[inside]] = self.cfg.l_min
 
     # -- queries ---------------------------------------------------------------------------
     def occupied(self) -> NDArray[np.bool_]:

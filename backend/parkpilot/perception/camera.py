@@ -76,6 +76,9 @@ class SensorFrame:
     cues: list[CueObservation] = field(default_factory=list)
     truth_phantom: NDArray[np.bool_] = field(default_factory=lambda: np.zeros(0, dtype=bool))
     """Ground truth: which hits are false positives (metrics/debug only)."""
+    hit_low: NDArray[np.bool_] = field(default_factory=lambda: np.zeros(0, dtype=bool))
+    """Per ray: the returned point is near the ground (stereo depth gives point height),
+    i.e. a low object such as a curb or bollard rather than a car, wall or person."""
 
     @property
     def hit_points(self) -> FloatArray:
@@ -206,6 +209,9 @@ class CameraRig:
             noise_sigma=(c.range_noise_base + c.range_noise_per_m * 10.0) * noise_gain,
             lighting=world.lighting,
             truth_phantom=phantom,
+            hit_low=(segs.low[first] if len(segs.low) else np.zeros(len(hits), dtype=bool))
+            & hits
+            & ~phantom,
         )
         if len(segs.agent):
             ray_agent = np.where(hits & ~phantom, segs.agent[first], -1)
