@@ -1,0 +1,29 @@
+id: charger_stall
+title: Charger stalls with the post on one side
+complaints: [C11]
+description: >
+  A row of charger stalls with the charging post at the head of each stall, on its right.
+  The ego's charge port is on the rear-left, so the car must reverse in to put the port next
+  to the post, and pull in far enough that the cable reaches (owners report cars stopping
+  "a foot short"). The driver has said they want to charge.
+location_id: supercenter_chargers
+bounds: [0, 0, 56, 34]
+entrance: [20, 33]
+ego_start: [3, 17, 0]
+search_route: [[4, 17], [52, 17]]
+user:
+  unlocks: [charging]
+rows:
+  - prefix: A
+    first_center: [8, 23.4, 90]
+    count: 15
+    types: {9: ev_charging, 10: ev_charging, 11: ev_charging, 12: ev_charging}
+    chargers: {9: right, 10: right, 11: right, 12: right}
+    occupied: [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 12, 13, 14]
+  - prefix: B
+    first_center: [47.2, 10.6, -90]
+    count: 15
+    occupied: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+obstacles:
+  - {kind: curb, center: [27.6, 26.3], size: [42.0, 0.2], height: 0.15}
+  - {kind: curb, center: [27.6, 7.7], size: [42.0, 0.2], height: 0.15}

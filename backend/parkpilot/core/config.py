@@ -283,6 +283,58 @@ class PlannerConfig(FrozenModel):
     """Base clearance added around the footprint (incl. mirrors) for collision checks (m)."""
 
 
+class GoalConfig(FrozenModel):
+    """Final-pose refinement (C3, C9, C11)."""
+
+    stay_within_lines: bool = True
+    """Never let centering push the mirrors across painted lines (lined stalls)."""
+    line_margin: float = 0.05
+    """Mirror-to-line margin kept when clamping to painted lines (m)."""
+    head_gap: float = 0.35
+    """Target gap between the leading bumper and the stall-head obstacle (m)."""
+    max_pull_in: float = 0.6
+    """How far beyond the stall centre the car may pull in toward the head (m)."""
+    curb_gap: float = 0.3
+    """Target body-to-curb gap for parallel parking (m)."""
+    port_target: float = 0.5
+    """Desired charge-port-to-charger distance (m); the cable reach is ~1.2 m."""
+    search_step: float = 0.05
+    """Step of the local search for a collision-free goal near the ideal one (m)."""
+    search_extent: float = 0.4
+    """Max lateral / longitudinal deviation explored by that search (m)."""
+    refine_tolerance: float = 0.12
+    """Residual lateral error that triggers a REFINE correction maneuver (m)."""
+    refine_heading_tolerance: float = 0.05
+    """Residual heading error that triggers a REFINE correction maneuver (rad)."""
+
+
+class SpeedConfig(FrozenModel):
+    """Clearance-driven speed profile with acceleration and jerk limits (C2)."""
+
+    v_open: float = 4.0
+    """Forward speed in open space (m/s)."""
+    v_reverse: float = 1.6
+    """Reverse speed cap (m/s)."""
+    v_tight: float = 0.6
+    """Speed near obstacles (m/s)."""
+    clear_low: float = 0.25
+    """Clearance at or below which ``v_tight`` applies (m)."""
+    clear_high: float = 1.6
+    """Clearance at or above which full speed applies (m)."""
+    lat_accel: float = 1.2
+    """Lateral acceleration limit used for the curvature speed cap (m/s^2)."""
+    accel: float = 1.2
+    """Planned acceleration (m/s^2)."""
+    decel: float = 1.2
+    """Planned deceleration toward cusps and the goal (m/s^2)."""
+    jerk: float = 2.0
+    """Jerk limit applied by the longitudinal controller (m/s^3)."""
+    creep: float = 0.25
+    """Minimum commanded speed while not yet at a stop point (m/s)."""
+    constant_speed: float | None = None
+    """If set, ignore clearance and drive at this speed (the baseline's crawl)."""
+
+
 class DirectionPreference(StrEnum):
     """How the user likes to end up in a perpendicular stall (C15)."""
 
@@ -343,3 +395,5 @@ class ParkPilotConfig(FrozenModel):
     spots: SpotDetectionConfig = SpotDetectionConfig()
     ranking: RankingConfig = RankingConfig()
     planner: PlannerConfig = PlannerConfig()
+    goal: GoalConfig = GoalConfig()
+    speed: SpeedConfig = SpeedConfig()
