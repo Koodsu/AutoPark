@@ -1,0 +1,47 @@
+# All hooks are local so they use the project's pinned toolchains (uv and pnpm lockfiles)
+# and need no network access at commit time.
+repos:
+  - repo: local
+    hooks:
+      - id: end-of-file-fixer
+        name: end-of-file-fixer
+        entry: uv run --project backend end-of-file-fixer
+        language: system
+        types: [text]
+        exclude: ^frontend/src/generated/
+      - id: trailing-whitespace
+        name: trailing-whitespace
+        entry: uv run --project backend trailing-whitespace-fixer
+        language: system
+        types: [text]
+        exclude: ^frontend/src/generated/
+      - id: ruff
+        name: ruff lint
+        entry: bash -c 'cd backend && uv run ruff check .'
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+      - id: ruff-format
+        name: ruff format
+        entry: bash -c 'cd backend && uv run ruff format --check .'
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+      - id: mypy
+        name: mypy --strict
+        entry: bash -c 'cd backend && uv run mypy parkpilot tests'
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+      - id: prettier
+        name: prettier
+        entry: bash -c 'cd frontend && pnpm exec prettier --check .'
+        language: system
+        files: ^frontend/
+        pass_filenames: false
+      - id: eslint
+        name: eslint
+        entry: bash -c 'cd frontend && pnpm exec eslint .'
+        language: system
+        files: ^frontend/.*\.(ts|tsx|js)$
+        pass_filenames: false

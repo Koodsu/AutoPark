@@ -1,0 +1,68 @@
+[project]
+name = "parkpilot"
+version = "0.1.0"
+description = "2D simulated autonomous parking research stack (planning, perception, behavior) with a browser HMI."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = { text = "MIT" }
+dependencies = [
+    "numpy>=2.0",
+    "pydantic>=2.7",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pyyaml>=6.0",
+    "matplotlib>=3.9",
+]
+
+[project.scripts]
+parkpilot = "parkpilot.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.2",
+    "pytest-cov>=5.0",
+    "hypothesis>=6.100",
+    "httpx>=0.27",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "types-PyYAML>=6.0",
+    "pre-commit>=3.7",
+    "pre-commit-hooks>=6.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["parkpilot"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF", "PL", "NPY"]
+ignore = ["PLR0913", "PLR2004", "PLR0911", "PLR0912", "PLR0915", "PLC0415"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["matplotlib.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["parkpilot"]
+omit = ["parkpilot/api/server.py", "parkpilot/api/session.py", "parkpilot/cli.py"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = false
+skip_covered = true
