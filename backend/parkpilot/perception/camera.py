@@ -66,6 +66,8 @@ class SensorFrame:
     max_ranges: FloatArray
     hits: NDArray[np.bool_]
     """True where the ray returned a surface."""
+    valid: NDArray[np.bool_]
+    """False where depth estimation failed (dropout): no information, not free space."""
     noise_sigma: float
     """Depth noise scale this frame (m at 10 m range); drives uncertainty-aware margins."""
     lighting: float
@@ -181,8 +183,8 @@ class CameraRig:
         else:
             first = np.zeros(len(origins), dtype=np.int64)
             true_range = np.full(len(origins), np.inf)
-        hits = true_range <= max_ranges
-        hits &= rng.random(len(hits)) >= dropout
+        valid = rng.random(len(origins)) >= dropout
+        hits = (true_range <= max_ranges) & valid
         sigma = (
             c.range_noise_base + c.range_noise_per_m * np.where(hits, true_range, 0.0)
         ) * noise_gain
@@ -200,6 +202,7 @@ class CameraRig:
             ranges=measured,
             max_ranges=max_ranges,
             hits=hits,
+            valid=valid | hits,
             noise_sigma=(c.range_noise_base + c.range_noise_per_m * 10.0) * noise_gain,
             lighting=world.lighting,
             truth_phantom=phantom,

@@ -141,6 +141,9 @@ class GridConfig(FrozenModel):
     l_max: float = 3.5
     occupied_threshold: float = 1.0
     """Log-odds above which a cell counts as occupied (two consistent hits)."""
+    free_margin: float = 0.35
+    """Free-space carving stops this far short of a hit, so depth noise cannot erode thin
+    surfaces such as bumpers and pillars (m)."""
     free_trust_range: float = 12.0
     """Free-space evidence beyond this range is ignored (stereo depth is unreliable)."""
     memory: bool = True
@@ -169,8 +172,57 @@ class TrackerConfig(FrozenModel):
     beta: float = 0.25
     dynamic_speed: float = 0.35
     """Speed above which a confirmed track is treated as a moving agent (m/s)."""
+    moving_frames: int = 3
+    """Consecutive frames above ``dynamic_speed`` needed to call a track moving."""
+    min_travel: float = 1.2
+    """Net displacement a track needs before it is treated as a moving agent (m)."""
     cue_radius: float = 2.5
     """Max distance between a visual cue and a track centroid to attach it (m)."""
+
+
+class SpotDetectionConfig(FrozenModel):
+    """Lined and line-less spot detection plus legality classification (C5, C6)."""
+
+    perpendicular_spacing: tuple[float, float] = (2.2, 3.8)
+    """Line spacing range that forms a perpendicular stall (m)."""
+    parallel_spacing: tuple[float, float] = (5.2, 8.5)
+    """Line spacing range that forms a parallel stall (m)."""
+    parallel_tolerance: float = 0.17
+    """Max |sin| of the angle between two lines treated as parallel (~10 deg)."""
+    line_alignment: float = 1.2
+    """Max along-line offset between paired line midpoints (m)."""
+    occupied_fraction: float = 0.04
+    """Fraction of occupied cells inside a stall above which it is taken."""
+    stall_shrink: float = 0.3
+    """Inset applied to stall polygons before checking occupancy (m)."""
+    gap_min_width: float = 2.9
+    """Minimum gap between parked vehicles to infer a line-less perpendicular stall (m)."""
+    gap_max_width: float = 9.0
+    """Gaps wider than this are split: the stall is placed beside the nearer vehicle (m)."""
+    gap_stall_width: float = 3.0
+    """Width assigned to an inferred stall carved from a wide gap (m)."""
+    gap_stall_length: float = 5.2
+    """Depth assumed for line-less perpendicular stalls (m)."""
+    gap_parallel_min: float = 6.0
+    """Minimum gap for a line-less parallel stall (m)."""
+    vehicle_extent: tuple[float, float] = (1.2, 7.0)
+    """Size range of occupied-grid components treated as parked vehicles (m)."""
+    vehicle_logodds: float = 0.5
+    """Log-odds above which a cell contributes to parked-vehicle outlines."""
+    row_tolerance: float = 1.6
+    """Max offset across the row for two vehicles to be in the same row (m)."""
+    min_observed_fraction: float = 0.35
+    """A stall must be at least this well observed before it is offered (unknown != free)."""
+    inspection_range: float = 11.0
+    """The ego must come this close for signs and paint to count as inspected (m)."""
+    inspection_frames: int = 4
+    """Frames within inspection range before a stall's type is considered verified."""
+    feature_radius: float = 0.9
+    """Features within this distance of a stall polygon are attributed to it (m)."""
+    zone_radius: float = 1.8
+    """No-parking surface cues within this distance make a stall candidate illegal (m)."""
+    track_merge_distance: float = 1.2
+    """Line-less candidates closer than this are the same spot across frames (m)."""
 
 
 class DirectionPreference(StrEnum):
@@ -228,3 +280,4 @@ class ParkPilotConfig(FrozenModel):
     sensor: SensorConfig = SensorConfig()
     grid: GridConfig = GridConfig()
     tracker: TrackerConfig = TrackerConfig()
+    spots: SpotDetectionConfig = SpotDetectionConfig()

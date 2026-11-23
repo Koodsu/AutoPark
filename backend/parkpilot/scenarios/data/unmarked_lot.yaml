@@ -1,0 +1,28 @@
+id: unmarked_lot
+title: Gravel lot with no painted lines
+complaints: [C6]
+description: >
+  An unpaved overflow lot. There are no painted lines; cars are parked side by side in two
+  rows. Spots must be inferred from gaps between parked vehicles and the dominant parking
+  orientation of each row.
+location_id: fairground_overflow
+bounds: [0, 0, 52, 34]
+entrance: [30, 33]
+surface: gravel
+ego_start: [3, 17, 0]
+search_route: [[4, 17], [48, 17]]
+rows:
+  - prefix: A
+    first_center: [8, 23.4, 90]
+    count: 14
+    lines_visible: false
+    occupied: [0, 1, 2, 3, 4, 5, 7, 8, 9, 11, 12, 13]
+    offsets: {1: [0.2, 2], 4: [-0.25, -3], 8: [0.15, 0], 11: [0.3, 4]}
+  - prefix: B
+    first_center: [44.4, 10.6, -90]
+    count: 14
+    lines_visible: false
+    occupied: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+notes: >
+  Line-less inference only handles gaps between two parked vehicles; open row ends are not
+  offered (a limitation listed in the README).

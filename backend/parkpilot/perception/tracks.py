@@ -31,6 +31,8 @@ class Track:
     age: int = 1
     reverse_lights: bool = False
     moving_frames: int = 0
+    origin: FloatArray | None = None
+    """Where the track was first seen; net displacement separates movers from parallax."""
 
     def confirmed(self, cfg: TrackerConfig) -> bool:
         return self.hits >= cfg.confirm_frames
@@ -39,20 +41,38 @@ class Track:
     def speed(self) -> float:
         return float(np.hypot(*self.velocity))
 
+    @property
+    def displacement(self) -> float:
+        if self.origin is None:
+            return 0.0
+        return float(np.hypot(*(self.position - self.origin)))
+
     def is_dynamic(self, cfg: TrackerConfig) -> bool:
-        return self.confirmed(cfg) and (self.moving_frames >= 2 or self.reverse_lights)
+        """Moving agent: sustained speed *and* real net travel, or a reverse-light cue.
+
+        The centroid of a static object drifts as different faces come into view, so speed
+        alone would misclassify parked cars as movers and erase them from memory.
+        """
+        if not self.confirmed(cfg):
+            return False
+        moving = self.moving_frames >= cfg.moving_frames and self.displacement >= cfg.min_travel
+        return moving or self.reverse_lights
 
 
 def cluster_points(points: FloatArray, radius: float) -> list[NDArray[np.int64]]:
-    """Single-linkage clustering using a spatial hash (cells of size ``radius``)."""
+    """Grid-hash clustering: points in 8-adjacent cells of size ``radius`` are linked.
+
+    This is single-linkage with a linkage distance between ``radius`` and
+    ``2 * sqrt(2) * radius``; it runs in O(cells) instead of O(points^2).
+    """
     n = len(points)
     if n == 0:
         return []
     keys = np.floor(points / radius).astype(np.int64)
-    buckets: dict[tuple[int, int], list[int]] = {}
-    for i, (kx, ky) in enumerate(keys):
-        buckets.setdefault((int(kx), int(ky)), []).append(i)
-    parent = list(range(n))
+    uniq, inverse = np.unique(keys, axis=0, return_inverse=True)
+    inverse = inverse.reshape(-1)
+    index = {(int(k[0]), int(k[1])): i for i, k in enumerate(uniq)}
+    parent = list(range(len(uniq)))
 
     def find(i: int) -> int:
         while parent[i] != i:
@@ -60,23 +80,18 @@ def cluster_points(points: FloatArray, radius: float) -> list[NDArray[np.int64]]
             i = parent[i]
         return i
 
-    r2 = radius * radius
-    for (kx, ky), members in buckets.items():
-        neigh: list[int] = []
-        for dx in (-1, 0, 1):
-            for dy in (-1, 0, 1):
-                neigh.extend(buckets.get((kx + dx, ky + dy), ()))
-        nb = np.array(neigh)
-        for i in members:
-            d2 = np.sum((points[nb] - points[i]) ** 2, axis=1)
-            for j in nb[d2 <= r2]:
-                ri, rj = find(i), find(int(j))
+    for (kx, ky), i in index.items():
+        for dx, dy in ((1, -1), (1, 0), (1, 1), (0, 1)):
+            j = index.get((kx + dx, ky + dy))
+            if j is not None:
+                ri, rj = find(i), find(j)
                 if ri != rj:
                     parent[ri] = rj
-    groups: dict[int, list[int]] = {}
-    for i in range(n):
-        groups.setdefault(find(i), []).append(i)
-    return [np.array(g, dtype=np.int64) for g in groups.values()]
+    roots = np.array([find(i) for i in range(len(uniq))])
+    labels = roots[inverse]
+    order = np.argsort(labels, kind="stable")
+    splits = np.flatnonzero(np.diff(labels[order])) + 1
+    return [g.astype(np.int64) for g in np.split(order, splits)]
 
 
 @dataclass(slots=True)
@@ -104,13 +119,15 @@ class Tracker:
                 clusters.append((idx, pts.mean(axis=0), extent))
         predicted = [tr.position + tr.velocity * dt for tr in self.tracks]
         used: set[int] = set()
-        pairs = []
-        for ti, pred in enumerate(predicted):
-            for ci, (_, centroid, _) in enumerate(clusters):
-                d = float(np.hypot(*(centroid - pred)))
-                if d <= cfg.gate:
-                    pairs.append((d, ti, ci))
-        pairs.sort()
+        pairs: list[tuple[float, int, int]] = []
+        if predicted and clusters:
+            pred = np.array(predicted)
+            cents = np.array([c[1] for c in clusters])
+            dist = np.linalg.norm(pred[:, None, :] - cents[None, :, :], axis=2)
+            ti_idx, ci_idx = np.nonzero(dist <= cfg.gate)
+            pairs = sorted(
+                zip(dist[ti_idx, ci_idx].tolist(), ti_idx.tolist(), ci_idx.tolist(), strict=True)
+            )
         matched_tracks: set[int] = set()
         for _, ti, ci in pairs:
             if ti in matched_tracks or ci in used:
@@ -139,7 +156,14 @@ class Tracker:
             if ci in used:
                 continue
             self.tracks.append(
-                Track(self._next_id, centroid.copy(), np.zeros(2), extent, points[idx])
+                Track(
+                    self._next_id,
+                    centroid.copy(),
+                    np.zeros(2),
+                    extent,
+                    points[idx],
+                    origin=centroid.copy(),
+                )
             )
             self._next_id += 1
         for tr in self.tracks:

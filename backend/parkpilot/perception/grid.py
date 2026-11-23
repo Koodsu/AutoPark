@@ -75,14 +75,17 @@ class OccupancyGrid:
             self.logodds *= k
         self._last_t = frame.t
         step = self.res * 0.5
-        free_len = np.minimum(frame.ranges - self.res, c.free_trust_range)
+        free_len = np.minimum(frame.ranges - c.free_margin, c.free_trust_range)
         free_len = np.where(frame.hits, free_len, np.minimum(frame.max_ranges, c.free_trust_range))
+        free_len = np.where(frame.valid, free_len, 0.0)
         n_steps = math.ceil(float(free_len.max(initial=0.0)) / step)
         if n_steps > 0:
             s = np.arange(n_steps) * step
             pts = frame.origins[:, None, :] + frame.directions[:, None, :] * s[None, :, None]
             valid = s[None, :] < free_len[:, None]
-            valid &= self._body_distance(frame.ego, pts) >= self.low_blind_range
+            # Only samples near the body can fall in the blind zone; skip the rest.
+            near = int(min(n_steps, math.ceil((self.low_blind_range + 3.5) / step)))
+            valid[:, :near] &= self._body_distance(frame.ego, pts[:, :near]) >= self.low_blind_range
             rows, cols = self.to_cells(pts[valid])
             ok = self.in_bounds(rows, cols)
             free_mask = np.zeros_like(self.observed)
