@@ -126,6 +126,53 @@ class SensorConfig(FrozenModel):
     """Read-probability reduction for paint (not signs) at lighting 0."""
 
 
+class GridConfig(FrozenModel):
+    """Log-odds occupancy grid with temporal memory (C7)."""
+
+    resolution: float = 0.15
+    """Cell size (m)."""
+    margin: float = 2.0
+    """Extra border around the lot bounds (m)."""
+    l_occ: float = 0.85
+    """Log-odds increment for a cell containing a hit."""
+    l_free: float = -0.35
+    """Log-odds increment for a cell a ray passed through."""
+    l_min: float = -2.0
+    l_max: float = 3.5
+    occupied_threshold: float = 1.0
+    """Log-odds above which a cell counts as occupied (two consistent hits)."""
+    free_trust_range: float = 12.0
+    """Free-space evidence beyond this range is ignored (stereo depth is unreliable)."""
+    memory: bool = True
+    """Keep cells when they leave the field of view (object permanence). The baseline
+    disables this and rebuilds the grid from the current frame only."""
+    decay_per_s: float = 0.0
+    """Optional log-odds decay toward unknown for unobserved cells (0 = perfect memory)."""
+    distance_cap: float = 3.0
+    """The distance field is exact up to this distance and saturates beyond it (m)."""
+
+
+class TrackerConfig(FrozenModel):
+    """Clustering and persistence filtering of detections into tracks (C8, C12)."""
+
+    cluster_radius: float = 0.6
+    """Hits closer than this belong to the same cluster (m)."""
+    max_extent: float = 6.5
+    """Clusters larger than this are structure (walls, rows), not trackable objects (m)."""
+    gate: float = 1.5
+    """Association gate around a track's predicted position (m)."""
+    confirm_frames: int = 3
+    """Consecutive frames a track must be seen before it is confirmed (persistence filter)."""
+    max_misses: int = 4
+    """Frames a track may go unseen before deletion."""
+    alpha: float = 0.5
+    beta: float = 0.25
+    dynamic_speed: float = 0.35
+    """Speed above which a confirmed track is treated as a moving agent (m/s)."""
+    cue_radius: float = 2.5
+    """Max distance between a visual cue and a track centroid to attach it (m)."""
+
+
 class DirectionPreference(StrEnum):
     """How the user likes to end up in a perpendicular stall (C15)."""
 
@@ -179,3 +226,5 @@ class ParkPilotConfig(FrozenModel):
     vehicle: VehicleConfig = VehicleConfig()
     agents: AgentConfig = AgentConfig()
     sensor: SensorConfig = SensorConfig()
+    grid: GridConfig = GridConfig()
+    tracker: TrackerConfig = TrackerConfig()
