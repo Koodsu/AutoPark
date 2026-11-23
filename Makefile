@@ -34,10 +34,17 @@ format:
 test: test-backend test-frontend
 
 test-backend:
-	cd $(BACKEND) && uv run pytest --cov --cov-report=term
+	cd $(BACKEND) && uv run pytest -n 4 --cov --cov-report=term
 
 test-frontend:
 	cd $(FRONTEND) && pnpm exec vitest run
+
+bench:
+	cd $(BACKEND) && uv run parkpilot bench --seeds $(SEEDS) --workers 4
+
+bench-smoke:
+	cd $(BACKEND) && uv run parkpilot bench --seeds 1 --workers 4 \
+		--scenarios charger_stall,restricted_spots --docs ../bench-out --results ../bench-out/results.json --strict
 
 build:
 	cd $(FRONTEND) && pnpm build
