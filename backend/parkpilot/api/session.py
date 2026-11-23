@@ -92,7 +92,7 @@ class SessionManager:
         self, scenario_id: str, system: str, seed: int, settings: UserSettings | None
     ) -> RunSession:
         sc = load_scenario(scenario_id)
-        chosen = settings or self._merged_settings(sc.user)
+        chosen = self._merged_settings(sc.user, settings)
         remembered = self.preferences.get_location(sc.location_id).positions()
         sim = Simulation(
             sc, SYSTEMS[system], system_config(system), seed, settings=chosen, remembered=remembered
@@ -111,8 +111,11 @@ class SessionManager:
         self.sessions[run_id] = session
         return session
 
-    def _merged_settings(self, scenario_settings: UserSettings) -> UserSettings:
-        stored = self.preferences.get_settings()
+    def _merged_settings(
+        self, scenario_settings: UserSettings, requested: UserSettings | None = None
+    ) -> UserSettings:
+        """User preferences plus whatever the scenario's driver declares (e.g. charging)."""
+        stored = requested or self.preferences.get_settings()
         return stored.model_copy(
             update={"unlocks": stored.unlocks | scenario_settings.unlocks}
             | (

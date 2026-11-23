@@ -53,5 +53,8 @@ schema:
 schema-check: schema
 	git diff --exit-code -- frontend/schema frontend/src/generated
 
+e2e:
+	cd $(FRONTEND) && pnpm exec playwright test
+
 build:
 	cd $(FRONTEND) && pnpm build
