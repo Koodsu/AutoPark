@@ -134,7 +134,7 @@ class Scenario(_Model):
     agents: list[AgentDef] = Field(default_factory=list)
     scripted: list[ScriptedCommand] = Field(default_factory=list)
     user: UserSettings = UserSettings()
-    max_time: float = 150.0
+    max_time: float = 120.0
     expect_handback: bool = False
     """True when the correct outcome is a safe handback (e.g. a full lot)."""
     notes: str = ""

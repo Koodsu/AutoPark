@@ -97,10 +97,10 @@ class SafetySupervisor:
                     and speed > 0.3
                 ):
                     emergency = True
-        tracks = perc.confirmed if cfg.persistence_filter else perc.tracks
+        tracks = perc.confirmed
         yield_track, yield_kind, min_ttc = None, None, math.inf
         for tr in tracks:
-            dynamic = tr.is_dynamic(self.tracker_cfg) if cfg.persistence_filter else True
+            dynamic = tr.is_dynamic(self.tracker_cfg)
             if not dynamic:
                 continue
             ttc = self._time_to_conflict(state, path_ahead, s, tr)

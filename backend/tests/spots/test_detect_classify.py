@@ -32,7 +32,7 @@ def test_lined_detection_and_legality_on_restricted_lot() -> None:
                 assert not c.legal
     assert free_found == free_truth
     legal = {_truth(world, c).id for c in cands if c.legal and not c.occupied and c.inspected}
-    assert legal == {"A4", "A5", "B9"}
+    assert legal == {"A14", "B9"}
 
 
 def test_placard_unlocks_accessible_only() -> None:

@@ -49,6 +49,9 @@ def classify(
     for ev in semantic.features:
         d = float(points_polygon_distance(ev.position[None, :], poly)[0])
         if ev.kind is FeatureKind.CHARGER and d <= 1.5:
+            local = cand.pose.to_local(ev.position[None, :])[0]
+            if abs(local[1]) > cand.width / 2:
+                continue  # the neighbouring stall's charger
             charger = (float(ev.position[0]), float(ev.position[1]))
             type_votes[SpotType.EV_CHARGING] = type_votes.get(SpotType.EV_CHARGING, 0) + ev.count
             continue

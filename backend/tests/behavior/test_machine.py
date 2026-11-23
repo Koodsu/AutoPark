@@ -55,8 +55,8 @@ def test_spot_selection_and_override_rules() -> None:
     def truth(r: RankedSpot) -> str:
         return min(world.spots, key=lambda s: s.pose.distance_to(r.candidate.pose)).id
 
-    assert truth(ranked[0]) in {"A4", "A5"}
-    accessible = next(r for r in ranked if truth(r) == "A6")
+    assert truth(ranked[0]) in {"A14", "B9"}
+    accessible = next(r for r in ranked if truth(r) == "A3")
     msg = a.command(OverrideSpot(accessible.candidate.id))
     assert msg.startswith("cannot park there") and "placard" in msg
     occupied = next(r for r in ranked if r.candidate.occupied)
