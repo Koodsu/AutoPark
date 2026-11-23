@@ -72,3 +72,18 @@ def test_open_lot_picks_the_oracle_spot_at_the_row_end() -> None:
 def test_override_scenario_has_no_oracle() -> None:
     m = run_one("override_spot", "parkpilot", 0)
     assert m.oracle_match is None and m.override_honored is True
+
+
+def test_parallel_park_ends_straight() -> None:
+    # Regression: parallel paths ended on an arc and left ~3.5 deg of heading error.
+    m = run_one("parallel_curb", "parkpilot", 0)
+    assert m.parked and m.curb_contacts == 0
+    assert m.final_heading_error_deg is not None and m.final_heading_error_deg <= 1.5
+
+
+def test_crooked_stop_is_straightened_at_night() -> None:
+    # Regression: this seed stopped 10 deg crooked, wedged inside the margin, and REFINE
+    # gave up because every correction path looked blocked at distance zero.
+    m = run_one("night_bollards", "parkpilot", 2)
+    assert m.parked and m.collisions == 0
+    assert m.final_heading_error_deg is not None and m.final_heading_error_deg <= 1.5

@@ -209,7 +209,10 @@ class SpotDetector:
         out: list[SpotCandidate] = []
         for li, lj, spacing in _line_pairs(lines, cfg):
             center = (li.mid + lj.mid) / 2
-            u = li.direction
+            # Stall axis: the mean direction of both lines (halves the heading noise).
+            uj = lj.direction if float(lj.direction @ li.direction) >= 0 else -lj.direction
+            u = li.direction + uj
+            u = u / max(float(np.hypot(*u)), 1e-9)
             length = (li.length + lj.length) / 2
             sid = "L:" + "|".join(sorted((li.id, lj.id)))
             # Long lines separate perpendicular stalls, short ones parallel stalls. This also

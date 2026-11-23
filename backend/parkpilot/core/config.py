@@ -295,6 +295,8 @@ class PlannerConfig(FrozenModel):
     """Base clearance added around the footprint (incl. mirrors) for collision checks (m)."""
     final_straight: float = 1.2
     """Length of the straight segment that ends perpendicular parking paths (m)."""
+    parallel_final_straight: float = 0.7
+    """Forward straightening segment that ends parallel parking paths (m)."""
 
 
 class GoalConfig(FrozenModel):
@@ -324,7 +326,7 @@ class GoalConfig(FrozenModel):
     """Extra margin the final pose must have beyond the planning margin (m)."""
     refine_tolerance: float = 0.12
     """Residual lateral error that triggers a REFINE correction maneuver (m)."""
-    refine_heading_tolerance: float = 0.05
+    refine_heading_tolerance: float = 0.026
     """Residual heading error that triggers a REFINE correction maneuver (rad)."""
 
 
@@ -407,6 +409,8 @@ class SafetyConfig(FrozenModel):
     """Deceleration used to compute speed limits ahead of hazards (m/s^2)."""
     lookahead_buffer: float = 2.5
     """Path distance checked beyond the stopping distance (m)."""
+    escape_distance: float = 0.6
+    """Leading path length allowed to overlap the margin when already wedged in (m)."""
     clear_time: float = 0.8
     """An agent must be clear this long before the car resumes after yielding (s)."""
     persistence_filter: bool = True
@@ -441,7 +445,7 @@ class BehaviorConfig(FrozenModel):
     """Times the car circles the search route before handing back (ladder step 2)."""
     max_replans_per_spot: int = 4
     """Re-plans tolerated toward one spot before trying the next one."""
-    refine_attempts: int = 1
+    refine_attempts: int = 2
     """Correction maneuvers allowed in REFINE (C3)."""
     stop_speed: float = 0.05
     """Speed below which the car counts as stopped (m/s)."""

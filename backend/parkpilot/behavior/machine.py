@@ -299,11 +299,14 @@ class ParkPilotAutonomy:
 
     def _safety(self, state: VehicleState) -> SafetyDecision:
         assert self._perc is not None
+        checker = self._checker(self.cfg.safety.check_margin_fraction)
+        here = np.array([[state.pose.x, state.pose.y, state.pose.theta]])
+        if not checker.free(here)[0]:
+            # Already inside the margin (a tight stall): judge the path ahead without it,
+            # otherwise every path would look blocked at distance zero.
+            checker = self._checker(0.0)
         decision = self.supervisor.evaluate(
-            state,
-            self.driver.remaining_poses(),
-            self._perc,
-            self._checker(self.cfg.safety.check_margin_fraction),
+            state, self.driver.remaining_poses(), self._perc, checker
         )
         self.telemetry.safety = decision
         if decision.emergency and not self._last_emergency:
@@ -468,6 +471,54 @@ class ParkPilotAutonomy:
                 self._override = None
         return self.driver.hold(state, dt)
 
+    def _refine_path(
+        self, start: Pose, goal: Pose, checker: CollisionChecker, straight: float, direction: int
+    ) -> Path | None:
+        """A correction maneuver: plan directly, else pull straight out first and re-enter.
+
+        Straight-line shuffles are what a careful driver does to fix a crooked stop, and
+        they are what Hybrid A* struggles to find from inside a tight stall.
+        """
+        res = self.planner.plan(start, goal, checker, straight, direction)
+        self.telemetry.plans += 1
+        if res.success and res.path is not None and res.path.length > 0.05:
+            return res.path
+        for pull in (1.5, 2.5, 3.5):
+            out = start.advanced(-direction * pull)
+            k = max(2, math.ceil(pull / 0.2))
+            s_ = np.linspace(pull / k, pull, k) * -direction
+            seg = np.stack(
+                [
+                    start.x + s_ * math.cos(start.theta),
+                    start.y + s_ * math.sin(start.theta),
+                    np.full(k, start.theta),
+                ],
+                axis=1,
+            )
+            if not checker.path_free(seg):
+                break
+            res = self.planner.plan(out, goal, checker, straight, direction)
+            self.telemetry.plans += 1
+            if res.success and res.path is not None:
+                first = np.vstack([[start.x, start.y, start.theta], seg])
+                dirs = np.concatenate([[-direction], np.full(k, float(-direction))])
+                return Path(
+                    np.vstack([first, res.path.poses[1:]]),
+                    np.concatenate([dirs, res.path.directions[1:]]),
+                    res.path.cost,
+                )
+        return None
+
+    def _straight_len(self, cand: SpotCandidate) -> float:
+        """Length of the straight segment that ends the maneuver into ``cand``.
+
+        Arriving with the wheels straight is what makes the final heading precise. Parallel
+        stalls get a short forward straightening move along the curb.
+        """
+        if cand.layout is SpotLayout.PERPENDICULAR:
+            return self.cfg.planner.final_straight
+        return self.cfg.planner.parallel_final_straight
+
     def _traffic_nearby(self, pose: Pose, radius: float = 12.0) -> bool:
         """A confirmed moving agent within ``radius`` of the ego."""
         if self._perc is None:
@@ -545,9 +596,7 @@ class ParkPilotAutonomy:
             )
         if not goal.ok:
             return None, None, "no collision-free final pose"
-        straight = (
-            self.cfg.planner.final_straight if cand.layout is SpotLayout.PERPENDICULAR else 0.0
-        )
+        straight = self._straight_len(cand)
         res = self.planner.plan(start, goal.pose, checker, straight, -1 if reverse else 1)
         self.telemetry.plans += 1
         if not res.success or res.path is None:
@@ -586,7 +635,7 @@ class ParkPilotAutonomy:
             and abs(state.speed) < b.stop_speed
             and decision.blocked_at < 1.2
         ):
-            self._refines = b.refine_attempts
+            # Correction path blocked: re-judge (and re-plan, if attempts remain).
             return self._arrived(state, dt)
         if self._state is not DriveState.REFINE:
             if cand.occupied:
@@ -692,9 +741,7 @@ class ParkPilotAutonomy:
             return None
         if abs(angle_diff(new.pose.theta, old.pose.theta)) > 0.5:
             return None
-        straight = (
-            self.cfg.planner.final_straight if cand.layout is SpotLayout.PERPENDICULAR else 0.0
-        )
+        straight = self._straight_len(cand)
         direction = 1 if abs(angle_diff(new.pose.theta, cand.pose.theta)) < math.pi / 2 else -1
         res = self.planner.plan(state.pose, new.pose, self._checker(), straight, direction)
         self.telemetry.plans += 1
@@ -714,18 +761,20 @@ class ParkPilotAutonomy:
             # Re-measure the neighbors and the curb from up close before judging the pose.
             cand = self._committed.candidate
             reverse = abs(angle_diff(goal.pose.theta, cand.pose.theta)) > math.pi / 2
-            fresh = compute_goal(
-                cand,
-                reverse_in=reverse,
-                checker=self._checker(self.cfg.safety.check_margin_fraction),
-                vehicle=self.vehicle,
-                cfg=self.cfg.goal,
-                ranking=self.cfg.ranking,
-                obstacle_points=self._perc.grid.occupied_points(),
-            )
-            if fresh.ok:
-                goal = fresh
-                self.telemetry.goal = fresh
+            for fraction in (1.0, self.cfg.safety.check_margin_fraction):
+                fresh = compute_goal(
+                    cand,
+                    reverse_in=reverse,
+                    checker=self._checker(fraction),
+                    vehicle=self.vehicle,
+                    cfg=self.cfg.goal,
+                    ranking=self.cfg.ranking,
+                    obstacle_points=self._perc.grid.occupied_points(),
+                )
+                if fresh.ok:
+                    goal = fresh
+                    self.telemetry.goal = fresh
+                    break
         rel = state.pose.relative_to(goal.pose)
         lat_err, head_err = abs(rel.y), abs(angle_diff(state.pose.theta, goal.pose.theta))
         lon_err = abs(rel.x)
@@ -737,18 +786,25 @@ class ParkPilotAutonomy:
         if needs and self._refines < b.refine_attempts:
             self._refines += 1
             checker = self._checker()
-            if not checker.free(np.array([[state.pose.x, state.pose.y, state.pose.theta]]))[0]:
-                checker = self._checker(self.cfg.safety.check_margin_fraction)
-            cand = self._committed.candidate
-            straight = (
-                self.cfg.planner.final_straight if cand.layout is SpotLayout.PERPENDICULAR else 0.0
+            ends = np.array(
+                [
+                    [state.pose.x, state.pose.y, state.pose.theta],
+                    [goal.pose.x, goal.pose.y, goal.pose.theta],
+                ]
             )
+            # A crooked stop can sit inside the planning margin: use the largest margin
+            # under which both the current and the corrected pose are free.
+            for fraction in (self.cfg.safety.check_margin_fraction, 0.0):
+                if checker.free(ends).all():
+                    break
+                checker = self._checker(fraction)
+            cand = self._committed.candidate
+            straight = self._straight_len(cand)
             direction = 1 if abs(angle_diff(goal.pose.theta, cand.pose.theta)) < math.pi / 2 else -1
-            res = self.planner.plan(state.pose, goal.pose, checker, straight, direction)
-            self.telemetry.plans += 1
-            if res.success and res.path is not None and res.path.length > 0.05:
-                self.driver.set_path(res.path, checker, 0.0)
-                self.telemetry.path = res.path
+            path = self._refine_path(state.pose, goal.pose, checker, straight, direction)
+            if path is not None:
+                self.driver.set_path(path, checker, 0.0)
+                self.telemetry.path = path
                 self._goto(
                     DriveState.REFINE,
                     f"straightening up: {lat_err:.2f} m off-center, "

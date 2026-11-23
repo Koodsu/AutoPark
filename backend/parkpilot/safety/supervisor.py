@@ -86,6 +86,14 @@ class SafetySupervisor:
         if len(path_ahead) > 1:
             window = s <= horizon
             free = checker.free(path_ahead[window])
+            # Poses at the very start that already overlap the margin (the car is wedged in a
+            # tight spot) cannot be avoided by stopping; only judge the path once it is
+            # clear, so the car may drive out along a path that gets clearer.
+            lead = 0
+            while lead < len(free) and not free[lead] and s[window][lead] < cfg.escape_distance:
+                lead += 1
+            free = free.copy()
+            free[:lead] = True
             if not free.all():
                 first = int(np.argmin(free))
                 blocked_at = float(s[window][first])
