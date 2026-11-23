@@ -162,6 +162,8 @@ class TrackerConfig(FrozenModel):
     """Hits closer than this belong to the same cluster (m)."""
     max_extent: float = 6.5
     """Clusters larger than this are structure (walls, rows), not trackable objects (m)."""
+    min_points: int = 2
+    """Clusters with fewer hits are noise, not objects."""
     gate: float = 1.5
     """Association gate around a track's predicted position (m)."""
     confirm_frames: int = 3
@@ -176,6 +178,10 @@ class TrackerConfig(FrozenModel):
     """Consecutive frames above ``dynamic_speed`` needed to call a track moving."""
     min_travel: float = 1.2
     """Net displacement a track needs before it is treated as a moving agent (m)."""
+    free_space_frames: int = 2
+    """Consecutive frames a mover's hits must land on confidently free cells."""
+    free_logodds: float = -1.4
+    """Log-odds at or below which a cell counts as confidently free (seen free often)."""
     cue_radius: float = 2.5
     """Max distance between a visual cue and a track centroid to attach it (m)."""
 
@@ -189,6 +195,8 @@ class SpotDetectionConfig(FrozenModel):
     """Line spacing range that forms a parallel stall (m)."""
     parallel_tolerance: float = 0.17
     """Max |sin| of the angle between two lines treated as parallel (~10 deg)."""
+    long_line: float = 4.0
+    """Lines at least this long bound perpendicular stalls; shorter ones parallel stalls (m)."""
     line_alignment: float = 1.2
     """Max along-line offset between paired line midpoints (m)."""
     occupied_fraction: float = 0.04
@@ -296,7 +304,7 @@ class GoalConfig(FrozenModel):
     """Target gap between the leading bumper and the stall-head obstacle (m)."""
     max_pull_in: float = 0.6
     """How far beyond the stall centre the car may pull in toward the head (m)."""
-    curb_gap: float = 0.3
+    curb_gap: float = 0.4
     """Target body-to-curb gap for parallel parking (m)."""
     port_target: float = 0.5
     """Desired charge-port-to-charger distance (m); the cable reach is ~1.2 m."""
@@ -304,6 +312,8 @@ class GoalConfig(FrozenModel):
     """Step of the local search for a collision-free goal near the ideal one (m)."""
     search_extent: float = 0.4
     """Max lateral / longitudinal deviation explored by that search (m)."""
+    goal_slack: float = 0.1
+    """Extra margin the final pose must have beyond the planning margin (m)."""
     refine_tolerance: float = 0.12
     """Residual lateral error that triggers a REFINE correction maneuver (m)."""
     refine_heading_tolerance: float = 0.05
@@ -365,9 +375,9 @@ class ControlConfig(FrozenModel):
 class SafetyConfig(FrozenModel):
     """Safety supervisor: TTC, uncertainty-inflated margins, persistence filter (C7, C8, C12)."""
 
-    base_margin: float = 0.12
+    base_margin: float = 0.10
     """Footprint margin in perfect conditions (m)."""
-    sigma_gain: float = 0.6
+    sigma_gain: float = 0.4
     """Extra margin per metre of depth-noise sigma (night widens margins)."""
     check_margin_fraction: float = 0.5
     """Fraction of the planning margin the supervisor requires before it intervenes."""
@@ -393,6 +403,45 @@ class SafetyConfig(FrozenModel):
     """An agent must be clear this long before the car resumes after yielding (s)."""
     persistence_filter: bool = True
     """Only confirmed tracks may trigger stops. The baseline disables this."""
+
+
+class BehaviorConfig(FrozenModel):
+    """Decision state machine: commitment hysteresis and the fallback ladder (C1, C14)."""
+
+    spot_update_period: float = 0.5
+    """How often spots are re-detected and re-ranked (s)."""
+    switch_abs_margin: float = 8.0
+    """A new spot must be cheaper than the committed one by at least this much..."""
+    switch_rel_margin: float = 0.2
+    """...and by at least this fraction of the committed cost."""
+    min_commit_time: float = 2.0
+    """No spot switch within this time of committing (s)."""
+    maneuver_lock_distance: float = 9.0
+    """No spot switch once this close to the goal (m)."""
+    entrance_coverage: float = 10.0
+    """Search continues until the car has passed the route point nearest the entrance by
+    this much, unless a near-optimal spot is already known (m)."""
+    near_optimal_walk: float = 6.0
+    """A spot within this walking distance of the best possible on the route ends the
+    search early (m)."""
+    max_spot_failures: int = 1
+    """Plan failures tolerated per spot before it is skipped (fallback ladder step 1)."""
+    max_circles: int = 1
+    """Times the car circles the search route before handing back (ladder step 2)."""
+    max_replans_per_spot: int = 4
+    """Re-plans tolerated toward one spot before trying the next one."""
+    refine_attempts: int = 1
+    """Correction maneuvers allowed in REFINE (C3)."""
+    stop_speed: float = 0.05
+    """Speed below which the car counts as stopped (m/s)."""
+    maneuver_distance: float = 7.0
+    """Distance to the goal at which APPROACH becomes MANEUVER (m)."""
+    replan_tracking_error: float = 0.6
+    """Cross-track error that invalidates the current plan (m)."""
+    yield_timeout: float = 25.0
+    """Yielding longer than this triggers a re-plan around the agent (s)."""
+    pullover_offset: float = 1.2
+    """Lateral offset toward the aisle edge for the safe handback stop (m)."""
 
 
 class DirectionPreference(StrEnum):
@@ -459,3 +508,4 @@ class ParkPilotConfig(FrozenModel):
     speed: SpeedConfig = SpeedConfig()
     control: ControlConfig = ControlConfig()
     safety: SafetyConfig = SafetyConfig()
+    behavior: BehaviorConfig = BehaviorConfig()

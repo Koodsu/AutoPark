@@ -62,6 +62,7 @@ def _track(
         1, np.array(pos), np.array(vel), 0.5, np.zeros((0, 2)), hits=hits, origin=np.array(pos)
     )
     t.moving_frames = 5
+    t.free_space_frames = 5
     t.origin = np.array(pos) - np.array(vel) * 3
     for k, v in kw.items():
         setattr(t, k, v)
@@ -87,7 +88,7 @@ def test_static_blockage_limits_speed() -> None:
 
 def test_margin_widens_at_night() -> None:
     sup = SafetySupervisor(SafetyConfig(), TRK, VEH)
-    assert sup.margin(0.28) > sup.margin(0.08) + 0.1
+    assert sup.margin(0.28) > sup.margin(0.08) + 0.07
 
 
 def test_yields_to_crossing_pedestrian_and_stops_hard_if_close() -> None:

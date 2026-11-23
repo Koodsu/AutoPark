@@ -117,6 +117,14 @@ class OccupancyGrid:
         rows, cols = np.nonzero(self.occupied())
         return self.cell_centers(rows.astype(np.int64), cols.astype(np.int64))
 
+    def logodds_at(self, points: FloatArray) -> NDArray[np.float32]:
+        """Current log-odds at world points (0 outside the grid)."""
+        rows, cols = self.to_cells(np.asarray(points, dtype=np.float64).reshape(-1, 2))
+        ok = self.in_bounds(rows, cols)
+        out = np.zeros(len(rows), dtype=np.float32)
+        out[ok] = self.logodds[rows[ok], cols[ok]]
+        return out
+
     def is_occupied_at(self, points: FloatArray) -> NDArray[np.bool_]:
         rows, cols = self.to_cells(np.asarray(points, dtype=np.float64).reshape(-1, 2))
         ok = self.in_bounds(rows, cols)

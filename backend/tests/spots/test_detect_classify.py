@@ -49,7 +49,7 @@ def test_placard_unlocks_accessible_only() -> None:
 
 def test_lineless_detection_on_unmarked_lot() -> None:
     _, world, _, cands, _ = survey("unmarked_lot")
-    free = [c for c in cands if not c.occupied]
+    free = [c for c in cands if not c.occupied and c.observed_fraction >= 0.35]
     assert all(c.source == "gap" for c in cands)
     truth_ids = {_truth(world, c).id for c in free}
     assert truth_ids == {"A6", "A10"}

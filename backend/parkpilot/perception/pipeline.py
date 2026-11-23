@@ -53,8 +53,12 @@ class Perception:
         rng: np.random.Generator,
     ) -> PerceptionOutput:
         frame = self.rig.sense(t, ego, world, agents, rng)
-        moving = self.tracker.update(t, frame.hit_points, frame.cues)
-        self.grid.update(frame, ignore_hits=moving)
+        pts = frame.hit_points
+        prior_free = self.grid.logodds_at(pts) <= self.cfg.tracker.free_logodds
+        self.tracker.update(t, pts, frame.cues, prior_free)
+        # Every hit goes into the grid, movers included: free-space carving erases the trail
+        # a moving agent leaves, whereas wrongly excluding a static object would erase it.
+        self.grid.update(frame)
         self.semantic.update(frame)
         return PerceptionOutput(
             t=t,

@@ -40,7 +40,8 @@ def test_moving_track_velocity_and_mask() -> None:
     tr = Tracker(CFG)
     mask = np.zeros(0, dtype=bool)
     for k in range(15):
-        mask = tr.update(0.1 * k, _blob(0.15 * k, 0), [])
+        pts = _blob(0.15 * k, 0)
+        mask = tr.update(0.1 * k, pts, [], np.ones(len(pts), dtype=bool))
     track = tr.confirmed()[0]
     assert abs(track.velocity[0] - 1.5) < 0.3
     assert track.is_dynamic(CFG)

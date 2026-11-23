@@ -31,6 +31,12 @@ class Track:
     age: int = 1
     reverse_lights: bool = False
     moving_frames: int = 0
+    free_space_frames: int = 0
+    """Recent frames in which most hits landed on cells the grid had confidently seen
+    free: something moved *into* free space. Static objects revealed by parallax land on
+    unknown or occupied cells instead."""
+    first_points: FloatArray | None = None
+    """Hits when the track was born; both ends of a real mover leave them behind."""
     origin: FloatArray | None = None
     """Where the track was first seen; net displacement separates movers from parallax."""
 
@@ -55,8 +61,28 @@ class Track:
         """
         if not self.confirmed(cfg):
             return False
-        moving = self.moving_frames >= cfg.moving_frames and self.displacement >= cfg.min_travel
+        moving = (
+            self.moving_frames >= cfg.moving_frames
+            and self.displacement >= cfg.min_travel
+            and self.free_space_frames >= cfg.free_space_frames
+        )
         return moving or self.reverse_lights
+
+    def both_ends_moved(self, distance: float) -> bool:
+        """True if the leading *and* trailing edges advanced along the motion direction.
+
+        A static object seen from a moving car reveals more of itself, so its centroid
+        drifts, but the edge that was visible from the start stays put. A real mover
+        translates as a whole.
+        """
+        if self.first_points is None or len(self.first_points) == 0 or len(self.points) == 0:
+            return False
+        sp = self.speed
+        if sp < 1e-6:
+            return False
+        u = self.velocity / sp
+        p0, p1 = self.first_points @ u, self.points @ u
+        return bool(p1.min() - p0.min() >= distance and p1.max() - p0.max() >= distance)
 
 
 def cluster_points(points: FloatArray, radius: float) -> list[NDArray[np.int64]]:
@@ -101,8 +127,16 @@ class Tracker:
     _next_id: int = 1
     _last_t: float | None = None
 
-    def update(self, t: float, points: FloatArray, cues: list[CueObservation]) -> NDArray[np.bool_]:
+    def update(
+        self,
+        t: float,
+        points: FloatArray,
+        cues: list[CueObservation],
+        prior_free: NDArray[np.bool_] | None = None,
+    ) -> NDArray[np.bool_]:
         """Update tracks from this frame's hit points.
+
+        ``prior_free`` flags hits on cells the occupancy grid had confidently seen free.
 
         Returns a mask over ``points`` marking hits that belong to confirmed *moving* tracks,
         so the occupancy grid can avoid smearing moving agents into its memory.
@@ -115,7 +149,7 @@ class Tracker:
         for idx in cluster_points(points, cfg.cluster_radius):
             pts = points[idx]
             extent = float(np.max(np.ptp(pts, axis=0))) if len(pts) > 1 else 0.0
-            if extent <= cfg.max_extent:
+            if extent <= cfg.max_extent and len(pts) >= cfg.min_points:
                 clusters.append((idx, pts.mean(axis=0), extent))
         predicted = [tr.position + tr.velocity * dt for tr in self.tracks]
         used: set[int] = set()
@@ -144,6 +178,8 @@ class Tracker:
             tr.misses = 0
             tr.age += 1
             tr.moving_frames = tr.moving_frames + 1 if tr.speed > cfg.dynamic_speed else 0
+            into_free = prior_free is not None and float(prior_free[idx].mean()) >= 0.5
+            tr.free_space_frames = tr.free_space_frames + 1 if into_free else 0
             if tr.is_dynamic(cfg):
                 moving_mask[idx] = True
         for ti, tr in enumerate(self.tracks):
@@ -163,6 +199,7 @@ class Tracker:
                     extent,
                     points[idx],
                     origin=centroid.copy(),
+                    first_points=points[idx].copy(),
                 )
             )
             self._next_id += 1

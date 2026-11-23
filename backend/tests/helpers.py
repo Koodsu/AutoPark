@@ -26,7 +26,7 @@ def survey(
     world = build_world(sc)
     cfg = config or ParkPilotConfig()
     perception = Perception(cfg, sc.bounds)
-    detector = SpotDetector(cfg.spots, sc.search_route)
+    detector = SpotDetector(cfg.spots, sc.search_route, sc.bounds)
     rng = np.random.default_rng(seed)
     (x0, y0), (x1, _) = sc.search_route[0], sc.search_route[1]
     out: PerceptionOutput | None = None

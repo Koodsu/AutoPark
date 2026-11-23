@@ -99,7 +99,9 @@ def test_external_speed_limit_and_inactive() -> None:
     xs = np.linspace(0, 20, 101)
     poses = np.stack([xs, np.zeros_like(xs), np.zeros_like(xs)], axis=1)
     follower.set_segment(poses, 1, np.full(101, 3.0))
-    cmd = follower.step(VehicleState(Pose(0, 0, 0), speed=2.0), 0.05, speed_limit=0.0)
+    cmd = follower.step(
+        VehicleState(Pose(0, 0, 0), speed=2.0), 0.05, speed_limit=0.0, emergency=True
+    )
     assert cmd.accel < -VehicleConfig().max_decel + 1e-9 or cmd.accel <= -2.5
     assert follower.active and follower.gear == 1
     follower.clear()

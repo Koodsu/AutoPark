@@ -104,7 +104,13 @@ class PathFollower:
         t = 0.0 if s1 - s0 < 1e-9 else (s - s0) / (s1 - s0)
         return np.asarray(self._ext[i - 1] + t * (self._ext[i] - self._ext[i - 1]))
 
-    def step(self, state: VehicleState, dt: float, speed_limit: float = math.inf) -> Command:
+    def step(
+        self,
+        state: VehicleState,
+        dt: float,
+        speed_limit: float = math.inf,
+        emergency: bool = False,
+    ) -> Command:
         """Compute the actuator command for one control period."""
         if not self.active:
             return Command(self._brake(state, dt), 0.0, self._gear, True, 0.0, 0.0, 0.0, 0.0)
@@ -136,7 +142,7 @@ class PathFollower:
         a_mag = self.cfg.speed_gain * (target - speed)
         # Feedforward: the constant deceleration that stops exactly at the segment end.
         a_mag = min(a_mag, -(speed**2) / (2.0 * stop_dist) + 0.3)
-        a_mag = self._limit(a_mag, dt, emergency=speed_limit < speed - 0.5)
+        a_mag = self._limit(a_mag, dt, emergency=emergency)
         return Command(
             self._gear * a_mag, steer, self._gear, False, cte, heading_err, target, remaining
         )

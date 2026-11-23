@@ -159,8 +159,14 @@ class _Vehicle:
 class SpotDetector:
     """Stateful detector: keeps stable ids and inspection counters across frames."""
 
-    def __init__(self, config: SpotDetectionConfig, route: list[tuple[float, float]]) -> None:
+    def __init__(
+        self,
+        config: SpotDetectionConfig,
+        route: list[tuple[float, float]],
+        bounds: tuple[float, float, float, float] | None = None,
+    ) -> None:
         self.cfg = config
+        self.bounds = bounds
         self.route = _Route(np.array(route, dtype=np.float64))
         self._inspection: dict[str, int] = {}
         self._gap_registry: dict[str, SpotCandidate] = {}
@@ -193,7 +199,13 @@ class SpotDetector:
             u = li.direction
             length = (li.length + lj.length) / 2
             sid = "L:" + "|".join(sorted((li.id, lj.id)))
-            if cfg.perpendicular_spacing[0] <= spacing <= cfg.perpendicular_spacing[1]:
+            # Long lines separate perpendicular stalls, short ones parallel stalls. This also
+            # rejects pairs that skip an occluded line (two stalls wide is not one stall).
+            long_lines = length >= cfg.long_line
+            if (
+                long_lines
+                and cfg.perpendicular_spacing[0] <= spacing <= cfg.perpendicular_spacing[1]
+            ):
                 heading = self._into_stall(center, u, length)
                 out.append(
                     SpotCandidate(
@@ -205,7 +217,7 @@ class SpotDetector:
                         "lines",
                     )
                 )
-            elif cfg.parallel_spacing[0] <= spacing <= cfg.parallel_spacing[1]:
+            elif not long_lines and cfg.parallel_spacing[0] <= spacing <= cfg.parallel_spacing[1]:
                 axis = np.array([-u[1], u[0]])
                 heading = self._along_traffic(center, axis)
                 out.append(
@@ -286,7 +298,9 @@ class SpotDetector:
                     groups[-1].append(m)
                 else:
                     groups.append([m])
-            for grp in groups:
+            # Only the row facing this aisle: farther "rows" are usually the rear faces of the
+            # same cars seen through gaps.
+            for grp in groups[:1]:
                 if len(grp) < 2:
                     continue
                 grp.sort(key=lambda m: m[1])
@@ -300,6 +314,18 @@ class SpotDetector:
                 for a, b in itertools.pairwise(grp):
                     g0, g1 = a[2], b[1]
                     out.extend(self._stalls_in_gap(q, u, n_side, front, g0, g1, parallel))
+        if self.bounds is not None:
+            xmin, ymin, xmax, ymax = self.bounds
+            out = [
+                c
+                for c in out
+                if (
+                    (poly := c.polygon())[:, 0].min() >= xmin
+                    and poly[:, 0].max() <= xmax
+                    and poly[:, 1].min() >= ymin
+                    and poly[:, 1].max() <= ymax
+                )
+            ]
         return self._stabilise(out)
 
     def _stalls_in_gap(
@@ -403,9 +429,10 @@ class SpotDetector:
         occ_frac, obs_frac = _coverage(grid, inner)
         c.occupied = occ_frac > cfg.occupied_fraction
         c.observed_fraction = obs_frac
-        # A confirmed object inside the stall (e.g. a cart or a person) also blocks it.
+        # A small confirmed object well inside the stall (a cart or a person) also blocks it.
+        core = rect_polygon(c.pose, max(0.5, c.length - 1.5), max(0.5, c.width - 1.2))
         for tr in perc.confirmed:
-            if points_in_convex_polygon(tr.position[None, :], inner)[0]:
+            if tr.extent <= 2.5 and points_in_convex_polygon(tr.position[None, :], core)[0]:
                 c.occupied = True
         if c.layout is SpotLayout.PERPENDICULAR and not c.occupied:
             c.pull_through = _far_end_open(grid, c)
