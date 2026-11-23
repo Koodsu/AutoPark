@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from parkpilot.core.config import UserSettings
 from parkpilot.core.geometry import Pose
+from parkpilot.world.agents import AgentSpec
 from parkpilot.world.layout import (
     RowSpec,
     build_row,
@@ -217,3 +218,20 @@ def _obstacle(oid: str, ob: ObstacleDef) -> Obstacle:
         return box_obstacle(oid, ob.kind, pose, ob.size[0], ob.size[1], ob.height)
     radius = ob.radius if ob.radius is not None else 0.15
     return Obstacle(oid, ob.kind, circle_polygon(ob.center, radius), ob.height)
+
+
+def agent_specs(sc: Scenario) -> list[AgentSpec]:
+    """Runtime agent specs for a scenario's dynamic agents."""
+    return [
+        AgentSpec(
+            id=a.id,
+            kind=a.kind,
+            waypoints=tuple(a.waypoints),
+            speed=a.speed,
+            start_time=a.start_time,
+            loop=a.loop,
+            reversing=a.reversing,
+            trigger_distance=a.trigger_distance,
+        )
+        for a in sc.agents
+    ]

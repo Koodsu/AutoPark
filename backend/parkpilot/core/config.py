@@ -57,6 +57,18 @@ class VehicleConfig(FrozenModel):
     """Number of disks used to approximate the footprint in the planner's fast check."""
 
 
+class AgentConfig(FrozenModel):
+    """Ground-truth behavior of simulated pedestrians, carts and cars."""
+
+    pedestrian_size: tuple[float, float] = (0.5, 0.5)
+    cart_size: tuple[float, float] = (1.0, 0.6)
+    car_size: tuple[float, float] = (4.6, 1.9)
+    yield_lookahead: float = 0.8
+    """Agents stop if the ego is within this distance ahead of them (polite last resort)."""
+    waypoint_tolerance: float = 0.05
+    """Distance at which a waypoint counts as reached (m)."""
+
+
 class DirectionPreference(StrEnum):
     """How the user likes to end up in a perpendicular stall (C15)."""
 
@@ -108,3 +120,4 @@ class ParkPilotConfig(FrozenModel):
     """Root configuration for one autonomy stack instance."""
 
     vehicle: VehicleConfig = VehicleConfig()
+    agents: AgentConfig = AgentConfig()

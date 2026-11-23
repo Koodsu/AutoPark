@@ -10,7 +10,7 @@ from parkpilot.scenarios.loader import (
     load_scenario,
     parse_scenario,
 )
-from parkpilot.scenarios.schema import build_world
+from parkpilot.scenarios.schema import agent_specs, build_world
 from parkpilot.vehicle.model import VehicleModel
 from parkpilot.world.model import ObstacleKind
 
@@ -75,3 +75,26 @@ phantoms:
     assert world.chargers[0].id == "ch_A0"
     assert any(o.kind is ObstacleKind.BOLLARD and o.is_low for o in world.obstacles)
     assert len(world.phantoms) == 1
+
+
+def test_agent_specs_from_yaml() -> None:
+    sc = parse_scenario(
+        """
+id: a
+title: t
+complaints: [C12]
+description: d
+location_id: here
+bounds: [0, 0, 20, 20]
+entrance: [10, 19]
+ego_start: [2, 10, 0]
+search_route: [[3, 10], [18, 10]]
+agents:
+  - {id: p1, kind: pedestrian, waypoints: [[5, 2], [5, 18]], speed: 1.4, start_time: 2}
+  - {id: c1, kind: car, waypoints: [[8, 14], [8, 10], [18, 10]], reversing: true,
+     trigger_distance: 8}
+"""
+    )
+    specs = agent_specs(sc)
+    assert [s.id for s in specs] == ["p1", "c1"]
+    assert specs[1].reversing and specs[1].trigger_distance == 8
